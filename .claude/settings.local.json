@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\newja\\\\OneDrive\\\\My_One\\\\Claude_PJT\\\\Asset.ZIP\\\\exec-plans\" -Recurse -Force | ForEach-Object { $_.FullName })",
+      "PowerShell(npm *)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\newja\\\\OneDrive\\\\My_One\\\\Claude_PJT\\\\Asset.ZIP\\\\web\" -Recurse -Depth 3 | Where-Object { !$_.PSIsContainer } | Select-Object FullName | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\Users\\\\newja\\\\OneDrive\\\\My_One\\\\Claude_PJT\\\\Asset.ZIP\\\\web\\\\\", \"\"\\) })",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\newja\\\\OneDrive\\\\My_One\\\\Claude_PJT\\\\Asset.ZIP\\\\web\\\\src\\\\generated\" -Recurse | Select-Object -First 10 | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\Users\\\\newja\\\\OneDrive\\\\My_One\\\\Claude_PJT\\\\Asset.ZIP\\\\web\\\\\", \"\"\\) })",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\newja\\\\OneDrive\\\\My_One\\\\Claude_PJT\\\\Asset.ZIP\\\\web\\\\src\\\\generated\\\\prisma\" | ForEach-Object { $_.Name })"
+    ]
+  }
+}
