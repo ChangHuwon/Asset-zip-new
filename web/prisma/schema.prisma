@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Family {
+  id          String   @id @default(cuid())
+  name        String
+  inviteCode  String   @unique
+  createdAt   DateTime @default(now())
+
+  members         Member[]
+  assetCategories AssetCategory[]
+  accounts        Account[]
+}
+
+model Member {
+  id           String    @id @default(cuid())
+  familyId     String
+  displayName  String
+  pinHash      String
+  failedAttempts Int     @default(0)
+  lockedUntil  DateTime?
+  createdAt    DateTime  @default(now())
+
+  family  Family  @relation(fields: [familyId], references: [id])
+  entries Entry[]
+
+  @@unique([familyId, displayName])
+}
+
+model AssetCategory {
+  id        String @id @default(cuid())
+  familyId  String
+  name      String
+  sortOrder Int
+
+  family   Family    @relation(fields: [familyId], references: [id])
+  accounts Account[]
+}
+
+model Account {
+  id         String   @id @default(cuid())
+  familyId   String
+  categoryId String
+  name       String
+  currency   String   @default("KRW")
+  createdAt  DateTime @default(now())
+
+  family   Family        @relation(fields: [familyId], references: [id])
+  category AssetCategory @relation(fields: [categoryId], references: [id])
+  entries  Entry[]
+}
+
+model Entry {
+  id               String   @id @default(cuid())
+  accountId        String
+  memberId         String
+  amountKrw        BigInt
+  originalAmount   Decimal?
+  originalCurrency String?
+  fxRateUsed       Decimal?
+  recordedAt       DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id])
+  member  Member  @relation(fields: [memberId], references: [id])
+}
