@@ -8,6 +8,14 @@ type Account = { id: string; name: string; currency: string };
 type EntryType = "BALANCE" | "DEPOSIT" | "WITHDRAWAL" | "INVEST_RETURN";
 type ReturnMode = "amount" | "rate";
 
+function todayLocal(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 const ENTRY_TABS: { value: EntryType; label: string }[] = [
   { value: "BALANCE", label: "잔액 입력" },
   { value: "DEPOSIT", label: "입금" },
@@ -46,6 +54,7 @@ export function EntryForm({
   const [returnMode, setReturnMode] = useState<ReturnMode>("amount");
   const [returnRate, setReturnRate] = useState("");
   const [note, setNote] = useState("");
+  const [valueDate, setValueDate] = useState(todayLocal());
   const [preview, setPreview] = useState<string | null>(null);
   const [state, action, pending] = useActionState(createEntry, null);
 
@@ -296,6 +305,18 @@ export function EntryForm({
           <span className="text-[14px] font-bold text-ink">{preview}</span>
         </div>
       )}
+
+      {/* 거래 날짜 */}
+      <div>
+        <label className="field-label">거래 날짜</label>
+        <input
+          name="valueDate"
+          type="date"
+          value={valueDate}
+          onChange={(e) => setValueDate(e.target.value)}
+          className="field-input"
+        />
+      </div>
 
       {/* 메모 */}
       <div>

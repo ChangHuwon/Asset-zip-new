@@ -24,6 +24,8 @@ export async function createEntry(
   const rawAmount = (formData.get("amount") as string) ?? "";
   const fxRateStr = (formData.get("fxRate") as string) ?? "";
   const note = (formData.get("note") as string)?.trim() || null;
+  const valueDateStr = (formData.get("valueDate") as string) ?? "";
+  const valueDate = valueDateStr ? new Date(valueDateStr) : null;
 
   if (!accountId) return { success: false, error: "계좌를 선택해주세요." };
 
@@ -119,6 +121,7 @@ export async function createEntry(
       originalCurrency: originalCurrency ?? undefined,
       fxRateUsed: fxRateUsed !== null ? fxRateUsed : undefined,
       note: note ?? undefined,
+      valueDate: valueDate ?? undefined,
     },
   });
 

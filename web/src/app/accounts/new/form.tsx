@@ -44,6 +44,18 @@ export function NewAccountForm({ categories }: { categories: Category[] }) {
         </select>
       </div>
 
+      <div>
+        <label className="field-label">비고 (선택)</label>
+        <textarea
+          name="note"
+          maxLength={500}
+          rows={4}
+          placeholder="이 계좌에 대한 메모를 입력하세요."
+          className="field-input"
+          style={{ height: "auto", paddingTop: "0.75rem", paddingBottom: "0.75rem", resize: "vertical" }}
+        />
+      </div>
+
       {state && !state.success && <p className="error-box">{state.error}</p>}
 
       <button type="submit" disabled={pending} className="btn-primary mt-1">

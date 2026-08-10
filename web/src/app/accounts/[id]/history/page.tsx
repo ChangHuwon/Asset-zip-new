@@ -41,6 +41,10 @@ function isSameDay(a: Date, b: Date) {
   );
 }
 
+function displayDate(entry: { valueDate: Date | null; recordedAt: Date }) {
+  return entry.valueDate ?? entry.recordedAt;
+}
+
 export default async function AccountHistoryPage({
   params,
 }: {
@@ -122,9 +126,9 @@ export default async function AccountHistoryPage({
         {entries.length > 0 && (
           <div className="flex flex-col gap-1">
             {entries.map((entry) => {
-              const recordedAt = new Date(entry.recordedAt);
-              const showDayHeader = prevDay === null || !isSameDay(prevDay, recordedAt);
-              prevDay = recordedAt;
+              const dateToShow = displayDate(entry);
+              const showDayHeader = prevDay === null || !isSameDay(prevDay, dateToShow);
+              prevDay = dateToShow;
               const meta = TYPE_META[entry.entryType as keyof typeof TYPE_META] ?? TYPE_META.BALANCE;
               const deltaStr = formatDelta(entry.deltaKrw, entry.entryType);
               const deltaNum = entry.deltaKrw ? Number(entry.deltaKrw) : null;
@@ -133,7 +137,7 @@ export default async function AccountHistoryPage({
                 <div key={entry.id}>
                   {showDayHeader && (
                     <p className="text-[12px] font-semibold text-muted px-1 pt-4 pb-2">
-                      {formatDate(recordedAt)}
+                      {formatDate(dateToShow)}
                     </p>
                   )}
                   <div
@@ -149,7 +153,7 @@ export default async function AccountHistoryPage({
                           >
                             {meta.label}
                           </span>
-                          <span className="text-[12px] text-muted">{formatTime(recordedAt)}</span>
+                          <span className="text-[12px] text-muted">{formatTime(dateToShow)}</span>
                         </div>
                         {entry.note && (
                           <p className="text-[14px] text-ink truncate">{entry.note}</p>

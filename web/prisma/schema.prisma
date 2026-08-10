@@ -49,6 +49,7 @@ model Account {
   categoryId String
   name       String
   currency   String   @default("KRW")
+  note       String?
   createdAt  DateTime @default(now())
 
   family   Family        @relation(fields: [familyId], references: [id])
@@ -67,6 +68,7 @@ model Entry {
   originalCurrency String?
   fxRateUsed       Decimal?
   note             String?
+  valueDate        DateTime?
   recordedAt       DateTime  @default(now())
 
   account Account @relation(fields: [accountId], references: [id])
