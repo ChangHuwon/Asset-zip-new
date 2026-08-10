@@ -97,6 +97,7 @@ export async function createEntry(
       const delta = BigInt(Math.round(Number(prevBalance) * (rate / 100)));
       deltaKrw = delta;
       amountKrw = prevBalance + delta;
+      if (amountKrw < BigInt(0)) amountKrw = BigInt(0);
     } else {
       const amount = parseFloat(rawAmount.replace(/,/g, ""));
       if (isNaN(amount)) return { success: false, error: "수익금을 입력해주세요." };
@@ -126,4 +127,132 @@ export async function createEntry(
   });
 
   redirect(`/accounts/${accountId}/history`);
+}
+
+export async function deleteEntry(
+  _: ActionResult | null,
+  formData: FormData
+): Promise<ActionResult> {
+  const session = await verifySession();
+  const entryId = formData.get("entryId") as string;
+
+  const entry = await prisma.entry.findUnique({
+    where: { id: entryId },
+    include: { account: { select: { familyId: true } } },
+  });
+
+  if (!entry || entry.account.familyId !== session.familyId)
+    return { success: false, error: "잘못된 내역입니다." };
+
+  const accountId = entry.accountId;
+  await prisma.entry.delete({ where: { id: entryId } });
+  redirect(`/accounts/${accountId}/history`);
+}
+
+export async function updateEntry(
+  _: ActionResult | null,
+  formData: FormData
+): Promise<ActionResult> {
+  const session = await verifySession();
+  const entryId = formData.get("entryId") as string;
+
+  const entry = await prisma.entry.findUnique({
+    where: { id: entryId },
+    include: { account: { select: { familyId: true } } },
+  });
+
+  if (!entry || entry.account.familyId !== session.familyId)
+    return { success: false, error: "잘못된 내역입니다." };
+
+  const rawAmount = (formData.get("amount") as string) ?? "";
+  const fxRateStr = (formData.get("fxRate") as string) ?? "";
+  const note = (formData.get("note") as string)?.trim() || null;
+  const valueDateStr = (formData.get("valueDate") as string) ?? "";
+  const valueDate = valueDateStr ? new Date(valueDateStr) : null;
+  const currency = entry.originalCurrency ?? "KRW";
+  const entryType = entry.entryType;
+  const entryAccountId = entry.accountId;
+  const entryRecordedAt = entry.recordedAt;
+
+  let amountKrw: bigint;
+  let deltaKrw: bigint | null = null;
+  let originalAmount: number | null = null;
+  let fxRateUsed: number | null = null;
+
+  async function getPrevBalance(): Promise<bigint> {
+    const prev = await prisma.entry.findFirst({
+      where: { accountId: entryAccountId, id: { not: entryId }, recordedAt: { lte: entryRecordedAt } },
+      orderBy: { recordedAt: "desc" },
+      select: { amountKrw: true },
+    });
+    return prev?.amountKrw ?? BigInt(0);
+  }
+
+  if (entryType === "BALANCE") {
+    const amount = parseFloat(rawAmount.replace(/,/g, ""));
+    if (isNaN(amount) || amount < 0)
+      return { success: false, error: "올바른 금액을 입력해주세요." };
+
+    if (currency !== "KRW") {
+      const fxRate = parseFloat(fxRateStr);
+      if (isNaN(fxRate) || fxRate <= 0)
+        return { success: false, error: "환율을 입력해주세요." };
+      originalAmount = amount;
+      fxRateUsed = fxRate;
+      amountKrw = BigInt(Math.round(amount * fxRate));
+    } else {
+      amountKrw = BigInt(Math.round(amount));
+    }
+  } else if (entryType === "DEPOSIT" || entryType === "WITHDRAWAL") {
+    const amount = parseFloat(rawAmount.replace(/,/g, ""));
+    if (isNaN(amount) || amount <= 0)
+      return { success: false, error: "올바른 금액을 입력해주세요." };
+
+    let krwAmount: bigint;
+    if (currency !== "KRW") {
+      const fxRate = parseFloat(fxRateStr);
+      if (isNaN(fxRate) || fxRate <= 0)
+        return { success: false, error: "환율을 입력해주세요." };
+      originalAmount = amount;
+      fxRateUsed = fxRate;
+      krwAmount = BigInt(Math.round(amount * fxRate));
+    } else {
+      krwAmount = BigInt(Math.round(amount));
+    }
+
+    const prevBalance = await getPrevBalance();
+    if (entryType === "DEPOSIT") {
+      deltaKrw = krwAmount;
+      amountKrw = prevBalance + krwAmount;
+    } else {
+      deltaKrw = -krwAmount;
+      amountKrw = prevBalance - krwAmount;
+      if (amountKrw < BigInt(0)) amountKrw = BigInt(0);
+    }
+  } else if (entryType === "INVEST_RETURN") {
+    const prevBalance = await getPrevBalance();
+    const amount = parseFloat(rawAmount.replace(/,/g, ""));
+    if (isNaN(amount)) return { success: false, error: "수익금을 입력해주세요." };
+    const isLoss = amount < 0;
+    const krwAbs = BigInt(Math.round(Math.abs(amount)));
+    deltaKrw = isLoss ? -krwAbs : krwAbs;
+    amountKrw = prevBalance + deltaKrw;
+    if (amountKrw < BigInt(0)) amountKrw = BigInt(0);
+  } else {
+    return { success: false, error: "잘못된 거래 유형입니다." };
+  }
+
+  await prisma.entry.update({
+    where: { id: entryId },
+    data: {
+      amountKrw,
+      deltaKrw: deltaKrw !== null ? deltaKrw : null,
+      originalAmount: originalAmount !== null ? originalAmount : null,
+      fxRateUsed: fxRateUsed !== null ? fxRateUsed : null,
+      note,
+      valueDate,
+    },
+  });
+
+  redirect(`/accounts/${entryAccountId}/history`);
 }

@@ -107,10 +107,14 @@ export function EntryForm({
     ) {
       if (entryType === "DEPOSIT") {
         const newBal = currentBalanceKrw + Math.round(numAmount);
-        setPreview(`잔액 ${newBal.toLocaleString("ko-KR")}원`);
+        setPreview(
+          `+${Math.round(numAmount).toLocaleString("ko-KR")}원 → 잔액 ${newBal.toLocaleString("ko-KR")}원`
+        );
       } else {
         const newBal = currentBalanceKrw - Math.round(numAmount);
-        setPreview(`잔액 ${newBal.toLocaleString("ko-KR")}원`);
+        setPreview(
+          `-${Math.round(numAmount).toLocaleString("ko-KR")}원 → 잔액 ${newBal.toLocaleString("ko-KR")}원`
+        );
       }
       return;
     }
@@ -192,7 +196,13 @@ export function EntryForm({
             <button
               key={tab.value}
               type="button"
-              onClick={() => setEntryType(tab.value)}
+              onClick={() => {
+                setEntryType(tab.value);
+                setAmount("");
+                setFxRate("");
+                setReturnRate("");
+                setPreview(null);
+              }}
               className={`h-9 rounded-[8px] text-[12px] font-semibold transition-all ${
                 entryType === tab.value
                   ? "bg-canvas text-ink shadow-sm"
