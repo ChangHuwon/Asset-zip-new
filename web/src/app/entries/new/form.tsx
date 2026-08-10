@@ -1,19 +1,21 @@
 "use client";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { createEntry } from "@/actions/entries";
+import {
+  formatComma,
+  useEntryValidation,
+  useEntryPreview,
+  type EntryType,
+  type ReturnMode,
+} from "@/hooks/useEntryForm";
 
 const FOREIGN_CURRENCIES = ["USD", "JPY", "EUR", "CNY"];
 
 type Account = { id: string; name: string; currency: string };
-type EntryType = "BALANCE" | "DEPOSIT" | "WITHDRAWAL" | "INVEST_RETURN";
-type ReturnMode = "amount" | "rate";
 
 function todayLocal(): string {
   const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 const ENTRY_TABS: { value: EntryType; label: string }[] = [
@@ -22,17 +24,6 @@ const ENTRY_TABS: { value: EntryType; label: string }[] = [
   { value: "WITHDRAWAL", label: "출금" },
   { value: "INVEST_RETURN", label: "투자 수익" },
 ];
-
-function formatComma(value: string): string {
-  const raw = value.replace(/,/g, "");
-  if (!/^-?\d*\.?\d*$/.test(raw)) return value;
-  const isNeg = raw.startsWith("-");
-  const abs = raw.replace("-", "");
-  const [integer, decimal] = abs.split(".");
-  const formatted = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  const result = decimal !== undefined ? formatted + "." + decimal : formatted;
-  return isNeg ? "-" + result : result;
-}
 
 export function EntryForm({
   defaultAccountId,
@@ -55,88 +46,39 @@ export function EntryForm({
   const [returnRate, setReturnRate] = useState("");
   const [note, setNote] = useState("");
   const [valueDate, setValueDate] = useState(todayLocal());
-  const [preview, setPreview] = useState<string | null>(null);
   const [state, action, pending] = useActionState(createEntry, null);
 
-  useEffect(() => {
-    const rawAmount = amount.replace(/,/g, "");
-    const numAmount = parseFloat(rawAmount);
+  // ─── 훅 ──────────────────────────────────────────────────────────
+  const { errors, isFormValid } = useEntryValidation({
+    entryType,
+    returnMode,
+    amount,
+    fxRate,
+    returnRate,
+    selectedCurrency,
+  });
 
-    if (entryType === "INVEST_RETURN" && returnMode === "rate") {
-      const rate = parseFloat(returnRate);
-      if (!isNaN(rate) && currentBalanceKrw > 0) {
-        const delta = Math.round(currentBalanceKrw * (rate / 100));
-        const newBalance = currentBalanceKrw + delta;
-        const sign = delta >= 0 ? "+" : "";
-        setPreview(
-          `${sign}${delta.toLocaleString("ko-KR")}원 → 잔액 ${newBalance.toLocaleString("ko-KR")}원`
-        );
-      } else {
-        setPreview(null);
-      }
-      return;
-    }
+  const preview = useEntryPreview({
+    entryType,
+    returnMode,
+    amount,
+    fxRate,
+    returnRate,
+    selectedCurrency,
+    currentBalanceKrw,
+  });
 
-    if (selectedCurrency !== "KRW" && rawAmount && fxRate) {
-      const krw = numAmount * parseFloat(fxRate);
-      if (!isNaN(krw)) {
-        if (entryType === "DEPOSIT") {
-          const newBal = currentBalanceKrw + Math.round(krw);
-          setPreview(
-            `+${Math.round(krw).toLocaleString("ko-KR")}원 → 잔액 ${newBal.toLocaleString("ko-KR")}원`
-          );
-        } else if (entryType === "WITHDRAWAL") {
-          const newBal = currentBalanceKrw - Math.round(krw);
-          setPreview(
-            `-${Math.round(krw).toLocaleString("ko-KR")}원 → 잔액 ${newBal.toLocaleString("ko-KR")}원`
-          );
-        } else {
-          setPreview(Math.round(krw).toLocaleString("ko-KR") + "원");
-        }
-      } else {
-        setPreview(null);
-      }
-      return;
-    }
-
-    if (
-      (entryType === "DEPOSIT" || entryType === "WITHDRAWAL") &&
-      selectedCurrency === "KRW" &&
-      !isNaN(numAmount) &&
-      numAmount > 0
-    ) {
-      if (entryType === "DEPOSIT") {
-        const newBal = currentBalanceKrw + Math.round(numAmount);
-        setPreview(
-          `+${Math.round(numAmount).toLocaleString("ko-KR")}원 → 잔액 ${newBal.toLocaleString("ko-KR")}원`
-        );
-      } else {
-        const newBal = currentBalanceKrw - Math.round(numAmount);
-        setPreview(
-          `-${Math.round(numAmount).toLocaleString("ko-KR")}원 → 잔액 ${newBal.toLocaleString("ko-KR")}원`
-        );
-      }
-      return;
-    }
-
-    if (
-      entryType === "INVEST_RETURN" &&
-      returnMode === "amount" &&
-      !isNaN(numAmount)
-    ) {
-      const newBal = currentBalanceKrw + Math.round(numAmount);
-      const sign = numAmount >= 0 ? "+" : "";
-      setPreview(
-        `${sign}${Math.round(numAmount).toLocaleString("ko-KR")}원 → 잔액 ${Math.max(0, newBal).toLocaleString("ko-KR")}원`
-      );
-      return;
-    }
-
-    setPreview(null);
-  }, [entryType, selectedCurrency, amount, fxRate, returnMode, returnRate, currentBalanceKrw]);
+  // ─── 탭 전환 ─────────────────────────────────────────────────────
+  function switchTab(tab: EntryType) {
+    setEntryType(tab);
+    setAmount("");
+    setFxRate("");
+    setReturnRate("");
+  }
 
   const isForeignCurrency = selectedCurrency !== "KRW";
   const showFxRate = isForeignCurrency && entryType !== "INVEST_RETURN";
+  const isRateMode = entryType === "INVEST_RETURN" && returnMode === "rate";
 
   function getAmountLabel() {
     if (entryType === "DEPOSIT") return isForeignCurrency ? `입금 금액 (${selectedCurrency})` : "입금 금액 (원)";
@@ -196,13 +138,7 @@ export function EntryForm({
             <button
               key={tab.value}
               type="button"
-              onClick={() => {
-                setEntryType(tab.value);
-                setAmount("");
-                setFxRate("");
-                setReturnRate("");
-                setPreview(null);
-              }}
+              onClick={() => switchTab(tab.value)}
               className={`h-9 rounded-[8px] text-[12px] font-semibold transition-all ${
                 entryType === tab.value
                   ? "bg-canvas text-ink shadow-sm"
@@ -215,7 +151,7 @@ export function EntryForm({
         </div>
       </div>
 
-      {/* 투자 수익: 수익 방식 선택 */}
+      {/* 투자 수익: 수익 방식 */}
       {entryType === "INVEST_RETURN" && (
         <div>
           <p className="field-label">수익 방식</p>
@@ -225,7 +161,11 @@ export function EntryForm({
               <button
                 key={m}
                 type="button"
-                onClick={() => setReturnMode(m)}
+                onClick={() => {
+                  setReturnMode(m);
+                  setAmount("");
+                  setReturnRate("");
+                }}
                 className={`flex-1 h-11 rounded-[10px] text-[14px] font-semibold border transition-all ${
                   returnMode === m
                     ? "bg-ink text-on-primary border-ink"
@@ -246,7 +186,10 @@ export function EntryForm({
           <select
             name="currency"
             value={selectedCurrency}
-            onChange={(e) => setSelectedCurrency(e.target.value)}
+            onChange={(e) => {
+              setSelectedCurrency(e.target.value);
+              setFxRate("");
+            }}
             className="field-input"
           >
             <option value="KRW">원화 (KRW)</option>
@@ -257,8 +200,8 @@ export function EntryForm({
         </div>
       )}
 
-      {/* 수익률 입력 (투자 수익 + rate 모드) */}
-      {entryType === "INVEST_RETURN" && returnMode === "rate" && (
+      {/* 수익률 입력 */}
+      {isRateMode && (
         <div>
           <label className="field-label">수익률 (%)</label>
           <input
@@ -269,13 +212,16 @@ export function EntryForm({
             value={returnRate}
             onChange={(e) => setReturnRate(e.target.value)}
             placeholder="예: 5.2 (손실은 음수 입력)"
-            className="field-input"
+            className={`field-input ${errors.returnRate ? "border-[#fc642d]" : ""}`}
           />
+          {errors.returnRate && (
+            <p className="text-[12px] text-[#fc642d] mt-1">{errors.returnRate}</p>
+          )}
         </div>
       )}
 
       {/* 금액 입력 (rate 모드 제외) */}
-      {!(entryType === "INVEST_RETURN" && returnMode === "rate") && (
+      {!isRateMode && (
         <div>
           <label className="field-label">{getAmountLabel()}</label>
           <input
@@ -285,8 +231,11 @@ export function EntryForm({
             value={amount}
             onChange={(e) => setAmount(formatComma(e.target.value))}
             placeholder="0"
-            className="field-input text-right text-[18px] font-semibold"
+            className={`field-input text-right text-[18px] font-semibold ${errors.amount ? "border-[#fc642d]" : ""}`}
           />
+          {errors.amount && (
+            <p className="text-[12px] text-[#fc642d] mt-1">{errors.amount}</p>
+          )}
         </div>
       )}
 
@@ -303,12 +252,15 @@ export function EntryForm({
             value={fxRate}
             onChange={(e) => setFxRate(e.target.value)}
             placeholder="예: 1,350"
-            className="field-input"
+            className={`field-input ${errors.fxRate ? "border-[#fc642d]" : ""}`}
           />
+          {errors.fxRate && (
+            <p className="text-[12px] text-[#fc642d] mt-1">{errors.fxRate}</p>
+          )}
         </div>
       )}
 
-      {/* 미리보기 */}
+      {/* 결과 미리보기 */}
       {preview && (
         <div className="px-4 py-2.5 rounded-[8px] bg-surface-soft flex items-center justify-between">
           <span className="text-[13px] text-muted">결과 미리보기</span>
@@ -343,7 +295,11 @@ export function EntryForm({
 
       {state && !state.success && <p className="error-box">{state.error}</p>}
 
-      <button type="submit" disabled={pending} className="btn-primary mt-1">
+      <button
+        type="submit"
+        disabled={pending || !isFormValid}
+        className="btn-primary mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
         {getSubmitLabel()}
       </button>
     </form>

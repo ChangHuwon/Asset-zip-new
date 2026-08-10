@@ -27,7 +27,10 @@ export default async function NewEntryPage({
   const latestEntry = accountId
     ? await prisma.entry.findFirst({
         where: { accountId },
-        orderBy: { recordedAt: "desc" },
+        orderBy: [
+          { valueDate: { sort: "desc", nulls: "last" } },
+          { recordedAt: "desc" },
+        ],
         select: { amountKrw: true },
       })
     : null;

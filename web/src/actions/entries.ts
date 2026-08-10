@@ -4,10 +4,24 @@ import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import type { ActionResult } from "./auth";
 
-async function getLatestBalance(accountId: string): Promise<bigint> {
+/**
+ * 특정 날짜 이하의 가장 최근 잔액을 가져온다.
+ * valueDate가 있으면 valueDate 기준, 없으면 recordedAt 기준으로 필터링한다.
+ * 정렬: valueDate DESC NULLS LAST → recordedAt DESC
+ */
+async function getLatestBalance(accountId: string, beforeDate: Date): Promise<bigint> {
   const latest = await prisma.entry.findFirst({
-    where: { accountId },
-    orderBy: { recordedAt: "desc" },
+    where: {
+      accountId,
+      OR: [
+        { valueDate: { lte: beforeDate } },
+        { valueDate: null, recordedAt: { lte: beforeDate } },
+      ],
+    },
+    orderBy: [
+      { valueDate: { sort: "desc", nulls: "last" } },
+      { recordedAt: "desc" },
+    ],
     select: { amountKrw: true },
   });
   return latest?.amountKrw ?? BigInt(0);
@@ -35,6 +49,9 @@ export async function createEntry(
   });
   if (!account || account.familyId !== session.familyId)
     return { success: false, error: "잘못된 계좌입니다." };
+
+  // 이전 잔액 조회 기준일: 사용자 지정 날짜 또는 현재 시각
+  const effectiveDate = valueDate ?? new Date();
 
   let amountKrw: bigint;
   let deltaKrw: bigint | null = null;
@@ -76,7 +93,7 @@ export async function createEntry(
       krwAmount = BigInt(Math.round(amount));
     }
 
-    const prevBalance = await getLatestBalance(accountId);
+    const prevBalance = await getLatestBalance(accountId, effectiveDate);
     if (entryType === "DEPOSIT") {
       deltaKrw = krwAmount;
       amountKrw = prevBalance + krwAmount;
@@ -88,7 +105,7 @@ export async function createEntry(
     }
   } else if (entryType === "INVEST_RETURN") {
     const returnMode = formData.get("returnMode") as string;
-    const prevBalance = await getLatestBalance(accountId);
+    const prevBalance = await getLatestBalance(accountId, effectiveDate);
 
     if (returnMode === "rate") {
       const rateStr = (formData.get("returnRate") as string) ?? "";
@@ -172,7 +189,9 @@ export async function updateEntry(
   const currency = entry.originalCurrency ?? "KRW";
   const entryType = entry.entryType;
   const entryAccountId = entry.accountId;
-  const entryRecordedAt = entry.recordedAt;
+
+  // 수정 후의 기준일 (새 valueDate 또는 원래 recordedAt)
+  const effectiveDate = valueDate ?? entry.recordedAt;
 
   let amountKrw: bigint;
   let deltaKrw: bigint | null = null;
@@ -181,8 +200,18 @@ export async function updateEntry(
 
   async function getPrevBalance(): Promise<bigint> {
     const prev = await prisma.entry.findFirst({
-      where: { accountId: entryAccountId, id: { not: entryId }, recordedAt: { lte: entryRecordedAt } },
-      orderBy: { recordedAt: "desc" },
+      where: {
+        accountId: entryAccountId,
+        id: { not: entryId },
+        OR: [
+          { valueDate: { lte: effectiveDate } },
+          { valueDate: null, recordedAt: { lte: effectiveDate } },
+        ],
+      },
+      orderBy: [
+        { valueDate: { sort: "desc", nulls: "last" } },
+        { recordedAt: "desc" },
+      ],
       select: { amountKrw: true },
     });
     return prev?.amountKrw ?? BigInt(0);

@@ -62,7 +62,10 @@ export default async function AccountHistoryPage({
 
   const entries = await prisma.entry.findMany({
     where: { accountId: id },
-    orderBy: { recordedAt: "desc" },
+    orderBy: [
+      { valueDate: { sort: "desc", nulls: "last" } },
+      { recordedAt: "desc" },
+    ],
     include: { member: { select: { displayName: true } } },
   });
 

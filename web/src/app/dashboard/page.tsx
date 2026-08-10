@@ -30,7 +30,10 @@ async function getDashboardData(familyId: string) {
         where: { familyId },
         include: {
           entries: {
-            orderBy: { recordedAt: "desc" },
+            orderBy: [
+              { valueDate: { sort: "desc", nulls: "last" } },
+              { recordedAt: "desc" },
+            ],
             take: 1,
             include: { member: { select: { displayName: true } } },
           },
