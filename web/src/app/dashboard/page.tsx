@@ -137,10 +137,12 @@ export default async function DashboardPage() {
               </div>
             )}
 
-            <div className="mt-4 flex items-center gap-2">
-              <span className="text-xs text-muted">초대코드</span>
-              <CopyCode code={family?.inviteCode ?? ""} />
-            </div>
+            {session.isOwner && (
+              <div className="mt-4 flex items-center gap-2">
+                <span className="text-xs text-muted">초대코드</span>
+                <CopyCode code={family?.inviteCode ?? ""} />
+              </div>
+            )}
           </div>
         </div>
 
@@ -228,8 +230,8 @@ export default async function DashboardPage() {
         </div>
 
         {/* 하단 버튼 */}
-        {hasAccounts && (
-          <div className="mt-4">
+        <div className="mt-4 flex flex-col gap-2">
+          {hasAccounts && (
             <Link
               href="/accounts/new"
               className="flex h-12 items-center justify-center rounded-[10px] bg-canvas border-[1.5px] border-hairline text-ink text-[15px] font-semibold"
@@ -237,8 +239,17 @@ export default async function DashboardPage() {
             >
               + 계좌 추가
             </Link>
-          </div>
-        )}
+          )}
+          {session.isOwner && (
+            <Link
+              href="/categories"
+              className="flex h-12 items-center justify-center rounded-[10px] bg-canvas border-[1.5px] border-hairline text-muted text-[14px] font-medium"
+              style={{ boxShadow: "var(--shadow-card)" }}
+            >
+              카테고리 관리
+            </Link>
+          )}
+        </div>
       </main>
     </div>
   );

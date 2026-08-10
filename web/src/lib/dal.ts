@@ -5,6 +5,6 @@ import { getSession } from "./session";
 
 export const verifySession = cache(async () => {
   const session = await getSession();
-  if (!session?.memberId) redirect("/start");
+  if (!session?.memberId) redirect("/login");
   return session;
 });

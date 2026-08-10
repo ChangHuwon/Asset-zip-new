@@ -26,15 +26,16 @@ export default function CreatePage() {
             <input name="displayName" placeholder="예: 아빠" className="field-input" />
           </div>
           <div>
-            <label className="field-label">4자리 PIN</label>
+            <label className="field-label">6자리 PIN (로그인에 사용)</label>
             <input
               name="pin"
               type="password"
               inputMode="numeric"
-              maxLength={4}
-              placeholder="• • • •"
+              maxLength={6}
+              placeholder="• • • • • •"
               className="field-input text-center tracking-[0.5em] text-xl"
             />
+            <p className="text-[12px] text-muted mt-1.5">전체에서 중복되지 않는 PIN을 설정하세요.</p>
           </div>
 
           {state && !state.success && <p className="error-box">{state.error}</p>}

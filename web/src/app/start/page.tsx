@@ -33,12 +33,12 @@ export default function StartPage() {
           초대코드로 합류하기
         </Link>
 
-        <p className="text-center text-sm text-muted mt-2">
-          이미 가입됐다면{" "}
-          <Link href="/login" className="text-primary font-medium underline underline-offset-2">
-            로그인
-          </Link>
-        </p>
+        <Link
+          href="/login"
+          className="flex h-14 items-center justify-center rounded-xl border-2 border-hairline text-ink text-[15px] font-semibold transition-colors active:bg-surface-soft"
+        >
+          PIN으로 로그인
+        </Link>
       </div>
     </div>
   );

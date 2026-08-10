@@ -6,10 +6,11 @@ export type SessionPayload = {
   memberId: string;
   familyId: string;
   displayName: string;
+  isOwner: boolean;
   expiresAt: Date;
 };
 
-const secretKey = process.env.SESSION_SECRET;
+const secretKey = process.env.AUTH_SECRET ?? process.env.SESSION_SECRET;
 const encodedKey = new TextEncoder().encode(secretKey);
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30일
 

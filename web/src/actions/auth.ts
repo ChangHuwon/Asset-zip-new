@@ -1,6 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
-import bcrypt from "bcryptjs";
+import { createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { createSession, deleteSession } from "@/lib/session";
 import { generateInviteCode } from "@/lib/invite-code";
@@ -16,6 +16,10 @@ export type ActionResult =
   | { success: true }
   | { success: false; error: string };
 
+function hashPin(pin: string): string {
+  return createHash("sha256").update(`asset-zip-pin:${pin}`).digest("hex");
+}
+
 export async function createFamily(
   _: ActionResult | null,
   formData: FormData
@@ -24,26 +28,23 @@ export async function createFamily(
   const displayName = (formData.get("displayName") as string)?.trim();
   const pin = formData.get("pin") as string;
 
-  if (!familyName || familyName.length < 1)
-    return { success: false, error: "가족 그룹 이름을 입력해주세요." };
-  if (!displayName || displayName.length < 1)
-    return { success: false, error: "표시 이름을 입력해주세요." };
-  if (!/^\d{4}$/.test(pin))
-    return { success: false, error: "PIN은 숫자 4자리여야 합니다." };
+  if (!familyName) return { success: false, error: "가족 그룹 이름을 입력해주세요." };
+  if (!displayName) return { success: false, error: "표시 이름을 입력해주세요." };
+  if (!/^\d{6}$/.test(pin)) return { success: false, error: "PIN은 숫자 6자리여야 합니다." };
+
+  const pinHash = hashPin(pin);
+
+  const duplicate = await prisma.member.findUnique({ where: { pinHash } });
+  if (duplicate) return { success: false, error: "이미 사용 중인 PIN입니다. 다른 PIN을 입력해주세요." };
 
   const inviteCode = generateInviteCode();
-  const pinHash = await bcrypt.hash(pin, 10);
 
   const family = await prisma.family.create({
     data: {
       name: familyName,
       inviteCode,
-      assetCategories: {
-        create: DEFAULT_CATEGORIES,
-      },
-      members: {
-        create: { displayName, pinHash },
-      },
+      assetCategories: { create: DEFAULT_CATEGORIES },
+      members: { create: { displayName, pinHash, isOwner: true } },
     },
     include: { members: true },
   });
@@ -53,6 +54,7 @@ export async function createFamily(
     memberId: member.id,
     familyId: family.id,
     displayName: member.displayName,
+    isOwner: true,
   });
 
   redirect("/dashboard");
@@ -76,88 +78,60 @@ export async function joinFamily(
   const pin = formData.get("pin") as string;
 
   if (!displayName) return { success: false, error: "표시 이름을 입력해주세요." };
-  if (!/^\d{4}$/.test(pin))
-    return { success: false, error: "PIN은 숫자 4자리여야 합니다." };
+  if (!/^\d{6}$/.test(pin)) return { success: false, error: "PIN은 숫자 6자리여야 합니다." };
+
+  const pinHash = hashPin(pin);
+
+  const duplicate = await prisma.member.findUnique({ where: { pinHash } });
+  if (duplicate) return { success: false, error: "이미 사용 중인 PIN입니다. 다른 PIN을 입력해주세요." };
 
   const existing = await prisma.member.findUnique({
     where: { familyId_displayName: { familyId, displayName } },
   });
-  if (existing)
-    return {
-      success: false,
-      error:
-        "이미 사용 중인 이름입니다. 다른 이름(예: '아빠2', '엄마_큰딸')을 입력해주세요.",
-    };
+  if (existing) return { success: false, error: "이미 사용 중인 표시 이름입니다." };
 
-  const pinHash = await bcrypt.hash(pin, 10);
   const member = await prisma.member.create({
-    data: { familyId, displayName, pinHash },
+    data: { familyId, displayName, pinHash, isOwner: false },
   });
 
   await createSession({
     memberId: member.id,
     familyId,
     displayName: member.displayName,
+    isOwner: false,
   });
 
   redirect("/dashboard");
-}
-
-export async function getMembersForFamily(inviteCode: string) {
-  const family = await prisma.family.findUnique({
-    where: { inviteCode: inviteCode.toUpperCase() },
-    select: {
-      id: true,
-      name: true,
-      members: { select: { id: true, displayName: true } },
-    },
-  });
-  return family;
 }
 
 export async function loginWithPin(
   _: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
-  const memberId = formData.get("memberId") as string;
   const pin = formData.get("pin") as string;
 
+  if (!/^\d{6}$/.test(pin))
+    return { success: false, error: "PIN은 숫자 6자리여야 합니다." };
+
+  const pinHash = hashPin(pin);
+
   const member = await prisma.member.findUnique({
-    where: { id: memberId },
+    where: { pinHash },
     include: { family: true },
   });
-  if (!member) return { success: false, error: "인증 정보를 확인해주세요." };
+
+  if (!member) {
+    return { success: false, error: "PIN을 확인해주세요." };
+  }
 
   if (member.lockedUntil && member.lockedUntil > new Date()) {
-    const seconds = Math.ceil(
-      (member.lockedUntil.getTime() - Date.now()) / 1000
-    );
-    return {
-      success: false,
-      error: `로그인 시도가 너무 많습니다. ${seconds}초 후 다시 시도하세요.`,
-    };
+    const seconds = Math.ceil((member.lockedUntil.getTime() - Date.now()) / 1000);
+    return { success: false, error: `로그인 시도가 너무 많습니다. ${seconds}초 후 다시 시도하세요.` };
   }
 
-  const valid = await bcrypt.compare(pin, member.pinHash);
-  if (!valid) {
-    const newFails = (member.failedAttempts || 0) + 1;
-    const lockedUntil = newFails >= 5 ? new Date(Date.now() + 5 * 60 * 1000) : null;
-    await prisma.member.update({
-      where: { id: memberId },
-      data: { failedAttempts: newFails, lockedUntil },
-    });
-    const remaining = Math.max(0, 5 - newFails);
-    return {
-      success: false,
-      error:
-        remaining > 0
-          ? `PIN이 올바르지 않습니다. ${remaining}회 남았습니다.`
-          : "5회 실패로 5분간 잠금됩니다.",
-    };
-  }
-
+  // SHA-256 해시로 조회했으므로 PIN이 일치함 — 실패 카운트 초기화
   await prisma.member.update({
-    where: { id: memberId },
+    where: { id: member.id },
     data: { failedAttempts: 0, lockedUntil: null },
   });
 
@@ -165,6 +139,7 @@ export async function loginWithPin(
     memberId: member.id,
     familyId: member.familyId,
     displayName: member.displayName,
+    isOwner: member.isOwner,
   });
 
   redirect("/dashboard");
@@ -172,5 +147,5 @@ export async function loginWithPin(
 
 export async function logout() {
   await deleteSession();
-  redirect("/start");
+  redirect("/login");
 }
