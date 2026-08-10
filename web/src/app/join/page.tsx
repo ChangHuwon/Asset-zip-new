@@ -1,6 +1,7 @@
 "use client";
 import { useState, useActionState } from "react";
 import { getFamilyByCode, joinFamily } from "@/actions/auth";
+import Link from "next/link";
 
 type Family = { id: string; name: string } | null;
 
@@ -26,91 +27,75 @@ export default function JoinPage() {
 
   if (!family) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen px-6">
-        <div className="w-full max-w-sm">
-          <h1 className="text-xl font-semibold text-ink mb-1">초대코드 입력</h1>
-          <p className="text-sm text-muted mb-8">
-            가족 구성원에게 받은 8자리 코드를 입력하세요.
-          </p>
+      <div className="flex flex-col min-h-screen bg-canvas">
+        <header className="flex items-center px-5 h-14">
+          <Link href="/start" className="text-2xl text-muted leading-none">‹</Link>
+        </header>
+        <main className="flex-1 px-6 pt-2 pb-10 max-w-sm mx-auto w-full animate-fade-up">
+          <h1 className="text-[26px] font-bold text-ink tracking-tight mb-1">초대코드 입력</h1>
+          <p className="text-[15px] text-muted mb-8">가족 구성원에게 받은 8자리 코드를 입력하세요.</p>
+
+          <label className="field-label">초대코드</label>
           <input
             value={codeInput}
             onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
             placeholder="예: 7F3KQXM9"
             maxLength={8}
-            className="w-full h-14 rounded-[8px] border border-hairline px-4 text-[15px] text-ink placeholder:text-muted tracking-widest uppercase focus:outline-none focus:border-ink focus:border-2 mb-4"
+            className="field-input tracking-[0.3em] uppercase text-center mb-3"
           />
-          {lookupError && (
-            <p className="text-sm text-primary mb-3">{lookupError}</p>
-          )}
+          {lookupError && <p className="error-box mb-4">{lookupError}</p>}
           <button
             onClick={handleCodeLookup}
             disabled={looking || codeInput.length < 4}
-            className="w-full h-12 rounded-[8px] bg-primary text-on-primary text-[15px] font-medium disabled:bg-primary-disabled transition-colors"
+            className="btn-primary mt-1"
           >
             {looking ? "확인 중..." : "확인"}
           </button>
-        </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-6">
-      <div className="w-full max-w-sm">
-        <div className="flex items-center gap-2 mb-6">
-          <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary text-on-primary text-sm font-semibold">
-            {codeInput}
-          </span>
-          <span className="text-muted text-sm">→</span>
-          <span className="text-ink font-medium">{family.name}</span>
+    <div className="flex flex-col min-h-screen bg-canvas">
+      <header className="flex items-center px-5 h-14">
+        <button onClick={() => setFamily(null)} className="text-2xl text-muted leading-none">‹</button>
+      </header>
+      <main className="flex-1 px-6 pt-2 pb-10 max-w-sm mx-auto w-full animate-scale-in">
+        <div className="inline-flex items-center gap-2 mb-6 px-3 py-1.5 rounded-full bg-surface-soft">
+          <span className="text-xs font-bold text-primary tracking-widest">{codeInput}</span>
+          <span className="text-xs text-muted">→</span>
+          <span className="text-xs font-semibold text-ink">{family.name}</span>
         </div>
 
-        <h1 className="text-xl font-semibold text-ink mb-1">
-          {family.name}에 합류하기
-        </h1>
-        <p className="text-sm text-muted mb-8">표시 이름과 PIN을 설정하세요.</p>
+        <h1 className="text-[26px] font-bold text-ink tracking-tight mb-1">{family.name}에 합류하기</h1>
+        <p className="text-[15px] text-muted mb-8">표시 이름과 PIN을 설정하세요.</p>
 
-        <form action={action} className="flex flex-col gap-4">
+        <form action={action} className="flex flex-col gap-5">
           <input type="hidden" name="familyId" value={family.id} />
-
           <div>
-            <label className="block text-sm font-medium text-body-text mb-1.5">
-              내 표시 이름
-            </label>
-            <input
-              name="displayName"
-              placeholder="예: 엄마"
-              className="w-full h-14 rounded-[8px] border border-hairline px-4 text-[15px] text-ink placeholder:text-muted focus:outline-none focus:border-ink focus:border-2"
-            />
+            <label className="field-label">내 표시 이름</label>
+            <input name="displayName" placeholder="예: 엄마" className="field-input" />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-body-text mb-1.5">
-              4자리 PIN
-            </label>
+            <label className="field-label">4자리 PIN</label>
             <input
               name="pin"
               type="password"
               inputMode="numeric"
               maxLength={4}
-              placeholder="숫자 4자리"
-              className="w-full h-14 rounded-[8px] border border-hairline px-4 text-[15px] text-ink placeholder:text-muted tracking-widest focus:outline-none focus:border-ink focus:border-2"
+              placeholder="• • • •"
+              className="field-input text-center tracking-[0.5em] text-xl"
             />
           </div>
 
-          {state && !state.success && (
-            <p className="text-sm text-primary">{state.error}</p>
-          )}
+          {state && !state.success && <p className="error-box">{state.error}</p>}
 
-          <button
-            type="submit"
-            disabled={pending}
-            className="h-12 rounded-[8px] bg-primary text-on-primary text-[15px] font-medium mt-2 disabled:bg-primary-disabled transition-colors"
-          >
+          <button type="submit" disabled={pending} className="btn-primary mt-2">
             {pending ? "합류 중..." : "합류하기"}
           </button>
         </form>
-      </div>
+      </main>
     </div>
   );
 }

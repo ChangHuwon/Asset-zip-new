@@ -1,8 +1,10 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { verifySession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { logout } from "@/actions/auth";
+import { CopyCode } from "./copy-code";
+
+const SEGMENT_COLORS = ["#ff385c", "#00a699", "#fc642d", "#767676", "#222222"];
 
 type CategorySummary = {
   id: string;
@@ -38,7 +40,7 @@ async function getDashboardData(familyId: string) {
   });
 
   const summaries: CategorySummary[] = categories.map((cat) => {
-    const accounts: CategorySummary["accounts"] = cat.accounts.map((acc) => {
+    const accounts = cat.accounts.map((acc) => {
       const latest = acc.entries[0] ?? null;
       return {
         id: acc.id,
@@ -59,28 +61,24 @@ async function getDashboardData(familyId: string) {
     return { id: cat.id, name: cat.name, total, accounts };
   });
 
-  const grandTotal = summaries.reduce(
-    (s: bigint, c) => s + c.total,
-    BigInt(0)
-  );
+  const grandTotal = summaries.reduce((s: bigint, c) => s + c.total, BigInt(0));
   return { summaries, grandTotal };
 }
 
-function formatKrw(amount: bigint): string {
+function krw(amount: bigint) {
   return Number(amount).toLocaleString("ko-KR") + "원";
 }
 
-function formatPercent(part: bigint, total: bigint): string {
+function pct(part: bigint, total: bigint) {
   if (total === BigInt(0)) return "0%";
   return ((Number(part) / Number(total)) * 100).toFixed(1) + "%";
 }
 
-function timeAgo(date: Date): string {
-  const diffMs = Date.now() - date.getTime();
-  const diffDays = Math.floor(diffMs / 86400000);
-  if (diffDays === 0) return "오늘";
-  if (diffDays === 1) return "1일 전";
-  return `${diffDays}일 전`;
+function timeAgo(date: Date) {
+  const d = Math.floor((Date.now() - date.getTime()) / 86400000);
+  if (d === 0) return "오늘";
+  if (d === 1) return "1일 전";
+  return `${d}일 전`;
 }
 
 export default async function DashboardPage() {
@@ -91,117 +89,156 @@ export default async function DashboardPage() {
     select: { name: true, inviteCode: true },
   });
 
+  const hasAccounts = summaries.some((s) => s.accounts.length > 0);
+  const activeCategories = summaries.filter((s) => s.total > BigInt(0));
+
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Top nav */}
-      <header className="flex items-center justify-between px-5 h-14 border-b border-hairline bg-canvas">
-        <span className="text-base font-semibold text-ink">Asset.ZIP</span>
+      {/* 헤더 */}
+      <header className="flex items-center justify-between px-5 h-14 bg-canvas border-b border-hairline sticky top-0 z-10">
+        <span className="text-[17px] font-bold text-ink tracking-tight">Asset.ZIP</span>
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted">{session.displayName}</span>
           <form action={logout}>
-            <button
-              type="submit"
-              className="text-sm text-muted underline-offset-2 underline"
-            >
+            <button type="submit" className="text-sm text-muted">
               로그아웃
             </button>
           </form>
         </div>
       </header>
 
-      <main className="flex-1 px-5 py-6 max-w-2xl mx-auto w-full">
-        {/* Total card */}
-        <div
-          className="rounded-[14px] border border-hairline p-6 mb-5"
-          style={{ boxShadow: "var(--shadow-card)" }}
-        >
-          <p className="text-sm text-muted mb-1">{family?.name} 공동자산 총액</p>
-          <p className="text-[44px] font-bold text-ink leading-none tracking-tight">
-            {formatKrw(grandTotal)}
-          </p>
-          <p className="text-xs text-muted mt-2">
-            초대코드:{" "}
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary text-on-primary text-xs font-semibold">
-              {family?.inviteCode}
-            </span>
-          </p>
+      <main className="flex-1 px-4 py-5 max-w-2xl mx-auto w-full animate-fade-up">
+
+        {/* 총액 카드 */}
+        <div className="bg-canvas rounded-2xl mb-4 overflow-hidden" style={{ boxShadow: "var(--shadow-card)" }}>
+          <div className="h-1 bg-primary" />
+          <div className="px-6 pt-5 pb-6">
+            <p className="text-[13px] font-semibold text-muted uppercase tracking-wide mb-1">
+              {family?.name} 공동자산
+            </p>
+            <p className="text-[48px] font-bold text-ink tracking-tight leading-none">
+              {krw(grandTotal)}
+            </p>
+
+            {/* 비중 바 */}
+            {grandTotal > BigInt(0) && activeCategories.length > 0 && (
+              <div className="mt-4 flex h-[6px] rounded-full overflow-hidden gap-0.5">
+                {activeCategories.map((cat, i) => (
+                  <div
+                    key={cat.id}
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: pct(cat.total, grandTotal),
+                      backgroundColor: SEGMENT_COLORS[i % SEGMENT_COLORS.length],
+                    }}
+                    title={`${cat.name}: ${pct(cat.total, grandTotal)}`}
+                  />
+                ))}
+              </div>
+            )}
+
+            <div className="mt-4 flex items-center gap-2">
+              <span className="text-xs text-muted">초대코드</span>
+              <CopyCode code={family?.inviteCode ?? ""} />
+            </div>
+          </div>
         </div>
 
-        {/* Category cards */}
-        <div className="flex flex-col gap-4">
-          {summaries.map((cat) => (
+        {/* 빈 상태 */}
+        {!hasAccounts && (
+          <div className="bg-canvas rounded-2xl p-8 text-center mb-4" style={{ boxShadow: "var(--shadow-card)" }}>
+            <div className="text-4xl mb-3">💰</div>
+            <p className="text-[17px] font-semibold text-ink mb-1">첫 계좌를 추가해보세요</p>
+            <p className="text-[14px] text-muted mb-5">
+              계좌를 등록하고 잔액을 입력하면<br />총액이 자동으로 집계됩니다.
+            </p>
+            <Link
+              href="/accounts/new"
+              className="inline-flex h-11 items-center px-6 rounded-[10px] bg-primary text-on-primary text-[14px] font-semibold"
+            >
+              계좌 추가하기
+            </Link>
+          </div>
+        )}
+
+        {/* 카테고리 카드 */}
+        <div className="flex flex-col gap-3">
+          {summaries.map((cat, idx) => (
             <div
               key={cat.id}
-              className="rounded-[14px] border border-hairline p-5"
+              className="bg-canvas rounded-2xl overflow-hidden"
+              style={{ boxShadow: "var(--shadow-card)" }}
             >
-              <div className="flex items-baseline justify-between mb-3">
-                <span className="text-[15px] font-medium text-ink">
-                  {cat.name}
-                </span>
+              {/* 카테고리 헤더 */}
+              <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-hairline">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{ backgroundColor: SEGMENT_COLORS[idx % SEGMENT_COLORS.length] }}
+                  />
+                  <span className="text-[15px] font-semibold text-ink">{cat.name}</span>
+                </div>
                 <div className="text-right">
-                  <span className="text-[15px] font-medium text-ink">
-                    {formatKrw(cat.total)}
-                  </span>
-                  {grandTotal > BigInt(0) && (
-                    <span className="ml-2 text-sm text-muted">
-                      {formatPercent(cat.total, grandTotal)}
-                    </span>
+                  <span className="text-[15px] font-bold text-ink">{krw(cat.total)}</span>
+                  {grandTotal > BigInt(0) && cat.total > BigInt(0) && (
+                    <span className="ml-2 text-xs text-muted">{pct(cat.total, grandTotal)}</span>
                   )}
                 </div>
               </div>
 
-              {cat.accounts.length === 0 ? (
-                <p className="text-sm text-muted">계좌 없음</p>
-              ) : (
-                <ul className="flex flex-col gap-2">
-                  {cat.accounts.map((acc) => (
-                    <li
-                      key={acc.id}
-                      className="flex items-center justify-between py-2 border-t border-hairline first:border-t-0"
-                    >
-                      <div>
-                        <p className="text-sm text-body-text">{acc.name}</p>
-                        {acc.latestEntry ? (
-                          <p className="text-xs text-muted mt-0.5">
-                            {acc.latestEntry.memberName} ·{" "}
-                            {timeAgo(acc.latestEntry.recordedAt)}
+              {/* 계좌 목록 */}
+              <div className="px-5">
+                {cat.accounts.length === 0 ? (
+                  <div className="py-4 text-[13px] text-muted">계좌 없음</div>
+                ) : (
+                  <ul>
+                    {cat.accounts.map((acc) => (
+                      <li
+                        key={acc.id}
+                        className="flex items-center justify-between py-3.5 border-b border-hairline last:border-0"
+                      >
+                        <div className="min-w-0 flex-1 mr-3">
+                          <Link href={`/accounts/${acc.id}/history`} className="text-[14px] font-medium text-ink truncate hover:underline">
+                            {acc.name}
+                          </Link>
+                          <p className="text-[12px] text-muted mt-0.5">
+                            {acc.latestEntry
+                              ? `${acc.latestEntry.memberName} · ${timeAgo(acc.latestEntry.recordedAt)}`
+                              : "잔액 미입력"}
                           </p>
-                        ) : (
-                          <p className="text-xs text-muted mt-0.5">미입력</p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {acc.latestEntry ? (
-                          <span className="text-sm font-medium text-ink">
-                            {formatKrw(acc.latestEntry.amountKrw)}
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className={`text-[15px] font-bold ${acc.latestEntry ? "text-ink" : "text-muted"}`}>
+                            {acc.latestEntry ? krw(acc.latestEntry.amountKrw) : "—"}
                           </span>
-                        ) : (
-                          <span className="text-sm text-muted">—</span>
-                        )}
-                        <Link
-                          href={`/entries/new?accountId=${acc.id}`}
-                          className="text-xs text-primary font-medium"
-                        >
-                          입력
-                        </Link>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                          <Link
+                            href={`/entries/new?accountId=${acc.id}`}
+                            className="text-[13px] font-semibold text-primary bg-[#fff1f3] px-3 py-1.5 rounded-full"
+                          >
+                            입력
+                          </Link>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           ))}
         </div>
 
-        {/* Actions */}
-        <div className="mt-6">
-          <Link
-            href="/accounts/new"
-            className="flex h-12 items-center justify-center rounded-[8px] border border-hairline text-ink text-[15px] font-medium transition-colors active:bg-surface-soft"
-          >
-            + 계좌 추가
-          </Link>
-        </div>
+        {/* 하단 버튼 */}
+        {hasAccounts && (
+          <div className="mt-4">
+            <Link
+              href="/accounts/new"
+              className="flex h-12 items-center justify-center rounded-[10px] bg-canvas border-[1.5px] border-hairline text-ink text-[15px] font-semibold"
+              style={{ boxShadow: "var(--shadow-card)" }}
+            >
+              + 계좌 추가
+            </Link>
+          </div>
+        )}
       </main>
     </div>
   );

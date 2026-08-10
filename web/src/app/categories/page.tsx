@@ -1,24 +1,24 @@
 import { verifySession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
-import { NewAccountForm } from "./form";
+import { CategoryManager } from "./manager";
 
-export default async function NewAccountPage() {
+export default async function CategoriesPage() {
   const session = await verifySession();
   const categories = await prisma.assetCategory.findMany({
     where: { familyId: session.familyId },
     orderBy: { sortOrder: "asc" },
-    select: { id: true, name: true },
+    include: { _count: { select: { accounts: true } } },
   });
 
   return (
     <div className="flex flex-col min-h-screen">
       <header className="flex items-center px-5 h-14 bg-canvas border-b border-hairline">
         <a href="/dashboard" className="text-2xl text-muted leading-none">‹</a>
-        <h1 className="flex-1 text-center text-[15px] font-semibold text-ink">계좌 추가</h1>
+        <h1 className="flex-1 text-center text-[15px] font-semibold text-ink">카테고리 관리</h1>
         <div className="w-6" />
       </header>
       <main className="flex-1 px-5 py-6 max-w-sm mx-auto w-full animate-fade-up">
-        <NewAccountForm categories={categories} />
+        <CategoryManager categories={categories} />
       </main>
     </div>
   );

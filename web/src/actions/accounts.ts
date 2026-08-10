@@ -23,11 +23,11 @@ export async function createAccount(
   if (!cat || cat.familyId !== session.familyId)
     return { success: false, error: "잘못된 카테고리입니다." };
 
-  await prisma.account.create({
+  const account = await prisma.account.create({
     data: { familyId: session.familyId, categoryId, name, currency },
   });
 
-  redirect("/dashboard");
+  redirect(`/entries/new?accountId=${account.id}`);
 }
 
 export async function getMyCategories() {

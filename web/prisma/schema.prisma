@@ -57,15 +57,25 @@ model Account {
 }
 
 model Entry {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   accountId        String
   memberId         String
+  entryType        EntryType @default(BALANCE)
   amountKrw        BigInt
+  deltaKrw         BigInt?
   originalAmount   Decimal?
   originalCurrency String?
   fxRateUsed       Decimal?
-  recordedAt       DateTime @default(now())
+  note             String?
+  recordedAt       DateTime  @default(now())
 
   account Account @relation(fields: [accountId], references: [id])
   member  Member  @relation(fields: [memberId], references: [id])
+}
+
+enum EntryType {
+  BALANCE
+  DEPOSIT
+  WITHDRAWAL
+  INVEST_RETURN
 }
