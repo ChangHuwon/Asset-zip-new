@@ -13,15 +13,20 @@ export default function JoinPage() {
   const [state, action, pending] = useActionState(joinFamily, null);
 
   async function handleCodeLookup() {
-    if (codeInput.length < 4) return;
+    if (codeInput.length < 8) return;
     setLooking(true);
     setLookupError("");
-    const result = await getFamilyByCode(codeInput);
-    setLooking(false);
-    if (result) {
-      setFamily(result);
-    } else {
-      setLookupError("유효하지 않은 초대코드입니다.");
+    try {
+      const result = await getFamilyByCode(codeInput);
+      if (result) {
+        setFamily(result);
+      } else {
+        setLookupError("유효하지 않은 초대코드입니다.");
+      }
+    } catch {
+      setLookupError("서버 오류가 발생했습니다. 다시 시도해주세요.");
+    } finally {
+      setLooking(false);
     }
   }
 
@@ -46,7 +51,7 @@ export default function JoinPage() {
           {lookupError && <p className="error-box mb-4">{lookupError}</p>}
           <button
             onClick={handleCodeLookup}
-            disabled={looking || codeInput.length < 4}
+            disabled={looking || codeInput.length < 8}
             className="btn-primary mt-1"
           >
             {looking ? "확인 중..." : "확인"}

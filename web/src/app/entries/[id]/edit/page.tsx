@@ -31,7 +31,26 @@ export default async function EditEntryPage({
 
   if (!entry || entry.account.familyId !== session.familyId) notFound();
 
-  // 초기 금액 계산 (원화 기준 또는 원화 환산 전 원본 금액)
+  // 이 내역 직전의 잔액 (이 내역 자체 제외)
+  const effectiveDate = entry.valueDate ?? entry.recordedAt;
+  const prevEntry = await prisma.entry.findFirst({
+    where: {
+      accountId: entry.accountId,
+      id: { not: entry.id },
+      OR: [
+        { valueDate: { lte: effectiveDate } },
+        { valueDate: null, recordedAt: { lte: effectiveDate } },
+      ],
+    },
+    orderBy: [
+      { valueDate: { sort: "desc", nulls: "last" } },
+      { recordedAt: "desc" },
+    ],
+    select: { amountKrw: true },
+  });
+  const prevBalanceKrw = prevEntry ? Number(prevEntry.amountKrw) : 0;
+
+  // 초기 금액 (원화 기준 또는 원화 환산 전 원본 금액)
   let initialAmount = "";
   const currency = entry.originalCurrency ?? entry.account.currency;
 
@@ -61,6 +80,7 @@ export default async function EditEntryPage({
     currency,
     note: entry.note ?? "",
     valueDate: toDateLocal(entry.valueDate ?? entry.recordedAt),
+    prevBalanceKrw,
   };
 
   return (

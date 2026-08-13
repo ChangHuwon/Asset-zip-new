@@ -1,11 +1,18 @@
 "use client";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { loginWithPin } from "@/actions/auth";
 import Link from "next/link";
 
 export default function LoginPage() {
   const [pin, setPin] = useState("");
   const [state, action, pending] = useActionState(loginWithPin, null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (pin.length === 6 && !pending) {
+      formRef.current?.requestSubmit();
+    }
+  }, [pin, pending]);
 
   return (
     <div className="flex flex-col min-h-screen bg-canvas">
@@ -32,7 +39,7 @@ export default function LoginPage() {
                 />
               ))}
             </div>
-            <form action={action} id="pin-form" className="absolute inset-0">
+            <form action={action} id="pin-form" ref={formRef} className="absolute inset-0">
               <input
                 name="pin"
                 type="tel"

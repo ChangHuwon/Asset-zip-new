@@ -31,15 +31,18 @@ export function EntryForm({
   accountName,
   accounts,
   currentBalanceKrw,
+  accountBalances = {},
 }: {
   defaultAccountId: string;
   defaultCurrency: string;
   accountName: string | null;
   accounts: Account[];
   currentBalanceKrw: number;
+  accountBalances?: Record<string, number>;
 }) {
   const [entryType, setEntryType] = useState<EntryType>("BALANCE");
   const [selectedCurrency, setSelectedCurrency] = useState(defaultCurrency);
+  const [balanceKrw, setBalanceKrw] = useState(currentBalanceKrw);
   const [amount, setAmount] = useState("");
   const [fxRate, setFxRate] = useState("");
   const [returnMode, setReturnMode] = useState<ReturnMode>("amount");
@@ -65,7 +68,7 @@ export function EntryForm({
     fxRate,
     returnRate,
     selectedCurrency,
-    currentBalanceKrw,
+    currentBalanceKrw: balanceKrw,
   });
 
   // ─── 탭 전환 ─────────────────────────────────────────────────────
@@ -119,7 +122,15 @@ export function EntryForm({
             className="field-input"
             onChange={(e) => {
               const acc = accounts.find((a) => a.id === e.target.value);
-              if (acc) setSelectedCurrency(acc.currency);
+              if (acc) {
+                setSelectedCurrency(acc.currency);
+                setBalanceKrw(accountBalances[acc.id] ?? 0);
+                setEntryType("BALANCE");
+                setReturnMode("amount");
+                setAmount("");
+                setFxRate("");
+                setReturnRate("");
+              }
             }}
           >
             <option value="" disabled>선택...</option>
@@ -150,6 +161,13 @@ export function EntryForm({
           ))}
         </div>
       </div>
+
+      {/* BALANCE 덮어쓰기 경고 */}
+      {entryType === "BALANCE" && balanceKrw > 0 && (
+        <p className="warn-box">
+          이전 잔액 <strong>{balanceKrw.toLocaleString("ko-KR")}원</strong>을 입력하는 값으로 덮어씁니다.
+        </p>
+      )}
 
       {/* 투자 수익: 수익 방식 */}
       {entryType === "INVEST_RETURN" && (

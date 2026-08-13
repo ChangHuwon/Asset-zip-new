@@ -186,9 +186,25 @@ export async function updateEntry(
   const note = (formData.get("note") as string)?.trim() || null;
   const valueDateStr = (formData.get("valueDate") as string) ?? "";
   const valueDate = valueDateStr ? new Date(valueDateStr) : null;
-  const currency = entry.originalCurrency ?? "KRW";
-  const entryType = entry.entryType;
   const entryAccountId = entry.accountId;
+
+  // 거래 유형: 폼에서 변경 가능
+  const VALID_TYPES = ["BALANCE", "DEPOSIT", "WITHDRAWAL", "INVEST_RETURN"] as const;
+  type ValidType = typeof VALID_TYPES[number];
+  const formEntryType = formData.get("entryType") as string;
+  const entryType: ValidType = (VALID_TYPES as readonly string[]).includes(formEntryType)
+    ? (formEntryType as ValidType)
+    : entry.entryType;
+
+  // 통화: INVEST_RETURN은 항상 원화, 그 외는 폼에서 읽음
+  let currency: string;
+  if (entryType === "INVEST_RETURN") {
+    currency = "KRW";
+  } else {
+    const formCurrency = formData.get("currency") as string;
+    currency = formCurrency || entry.originalCurrency || "KRW";
+  }
+  const newOriginalCurrency = currency !== "KRW" ? currency : null;
 
   // 수정 후의 기준일 (새 valueDate 또는 원래 recordedAt)
   const effectiveDate = valueDate ?? entry.recordedAt;
@@ -254,19 +270,32 @@ export async function updateEntry(
       deltaKrw = krwAmount;
       amountKrw = prevBalance + krwAmount;
     } else {
+      if (krwAmount > prevBalance)
+        return { success: false, error: "출금액이 현재 잔액보다 클 수 없습니다." };
       deltaKrw = -krwAmount;
       amountKrw = prevBalance - krwAmount;
-      if (amountKrw < BigInt(0)) amountKrw = BigInt(0);
     }
   } else if (entryType === "INVEST_RETURN") {
+    const returnMode = (formData.get("returnMode") as string) || "amount";
     const prevBalance = await getPrevBalance();
-    const amount = parseFloat(rawAmount.replace(/,/g, ""));
-    if (isNaN(amount)) return { success: false, error: "수익금을 입력해주세요." };
-    const isLoss = amount < 0;
-    const krwAbs = BigInt(Math.round(Math.abs(amount)));
-    deltaKrw = isLoss ? -krwAbs : krwAbs;
-    amountKrw = prevBalance + deltaKrw;
-    if (amountKrw < BigInt(0)) amountKrw = BigInt(0);
+
+    if (returnMode === "rate") {
+      const rateStr = (formData.get("returnRate") as string) ?? "";
+      const rate = parseFloat(rateStr);
+      if (isNaN(rate)) return { success: false, error: "수익률을 입력해주세요." };
+      const delta = BigInt(Math.round(Number(prevBalance) * (rate / 100)));
+      deltaKrw = delta;
+      amountKrw = prevBalance + delta;
+      if (amountKrw < BigInt(0)) amountKrw = BigInt(0);
+    } else {
+      const amount = parseFloat(rawAmount.replace(/,/g, ""));
+      if (isNaN(amount)) return { success: false, error: "수익금을 입력해주세요." };
+      const isLoss = amount < 0;
+      const krwAbs = BigInt(Math.round(Math.abs(amount)));
+      deltaKrw = isLoss ? -krwAbs : krwAbs;
+      amountKrw = prevBalance + deltaKrw;
+      if (amountKrw < BigInt(0)) amountKrw = BigInt(0);
+    }
   } else {
     return { success: false, error: "잘못된 거래 유형입니다." };
   }
@@ -274,9 +303,11 @@ export async function updateEntry(
   await prisma.entry.update({
     where: { id: entryId },
     data: {
+      entryType,
       amountKrw,
       deltaKrw: deltaKrw !== null ? deltaKrw : null,
       originalAmount: originalAmount !== null ? originalAmount : null,
+      originalCurrency: newOriginalCurrency,
       fxRateUsed: fxRateUsed !== null ? fxRateUsed : null,
       note,
       valueDate,

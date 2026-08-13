@@ -157,7 +157,7 @@ export default async function AccountHistoryPage({
                           >
                             {meta.label}
                           </span>
-                          <span className="text-[12px] text-muted">{formatTime(dateToShow)}</span>
+                          <span className="text-[12px] text-muted">{formatTime(entry.recordedAt)}</span>
                         </div>
                         {entry.note && (
                           <p className="text-[14px] text-ink truncate">{entry.note}</p>

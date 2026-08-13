@@ -116,7 +116,9 @@ export function useEntryPreview(params: {
       return `+${fmt(krwRounded)}원 → 잔액 ${fmt(currentBalanceKrw + krwRounded)}원`;
     }
     if (entryType === "WITHDRAWAL") {
-      return `-${fmt(krwRounded)}원 → 잔액 ${fmt(Math.max(0, currentBalanceKrw - krwRounded))}원`;
+      const remaining = currentBalanceKrw - krwRounded;
+      if (remaining < 0) return null; // 서버에서 오류 반환 — 미리보기 숨김
+      return `-${fmt(krwRounded)}원 → 잔액 ${fmt(remaining)}원`;
     }
     return `${fmt(krwRounded)}원`;
   }
@@ -126,7 +128,9 @@ export function useEntryPreview(params: {
     if (entryType === "DEPOSIT") {
       return `+${fmt(numAmount)}원 → 잔액 ${fmt(currentBalanceKrw + Math.round(numAmount))}원`;
     }
-    return `-${fmt(numAmount)}원 → 잔액 ${fmt(Math.max(0, currentBalanceKrw - Math.round(numAmount)))}원`;
+    const remaining = currentBalanceKrw - Math.round(numAmount);
+    if (remaining < 0) return null; // 서버에서 오류 반환 — 미리보기 숨김
+    return `-${fmt(numAmount)}원 → 잔액 ${fmt(remaining)}원`;
   }
 
   // INVEST_RETURN + 수익금 모드

@@ -81,7 +81,8 @@ function timeAgo(date: Date) {
   const d = Math.floor((Date.now() - date.getTime()) / 86400000);
   if (d === 0) return "오늘";
   if (d === 1) return "1일 전";
-  return `${d}일 전`;
+  if (d <= 6) return `${d}일 전`;
+  return date.toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
 }
 
 export default async function DashboardPage() {
