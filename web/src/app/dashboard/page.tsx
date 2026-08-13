@@ -175,7 +175,10 @@ export default async function DashboardPage() {
 
         {/* 카테고리 카드 */}
         <div className="flex flex-col gap-3">
-          {summaries.map((cat, idx) => (
+          {summaries.map((cat, idx) => {
+            const visibleAccounts = cat.accounts.filter((acc) => acc.latestEntry !== null);
+            if (visibleAccounts.length === 0) return null;
+            return (
             <div
               key={cat.id}
               className="bg-canvas rounded-2xl overflow-hidden"
@@ -200,11 +203,8 @@ export default async function DashboardPage() {
 
               {/* 계좌 목록 */}
               <div className="px-5">
-                {cat.accounts.length === 0 ? (
-                  <div className="py-4 text-[13px] text-muted">계좌 없음</div>
-                ) : (
-                  <ul>
-                    {cat.accounts.map((acc) => (
+                <ul>
+                  {visibleAccounts.map((acc) => (
                       <li
                         key={acc.id}
                         className="flex items-center justify-between py-3.5 border-b border-hairline last:border-0"
@@ -214,14 +214,12 @@ export default async function DashboardPage() {
                             {acc.name}
                           </Link>
                           <p className="text-[12px] text-muted mt-0.5">
-                            {acc.latestEntry
-                              ? `${acc.latestEntry.memberName} · ${timeAgo(acc.latestEntry.recordedAt)}`
-                              : "잔액 미입력"}
+                            {`${acc.latestEntry!.memberName} · ${timeAgo(acc.latestEntry!.recordedAt)}`}
                           </p>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
-                          <span className={`text-[15px] font-bold ${acc.latestEntry ? "text-ink" : "text-muted"}`}>
-                            {acc.latestEntry ? krw(acc.latestEntry.amountKrw) : "—"}
+                          <span className="text-[15px] font-bold text-ink">
+                            {krw(acc.latestEntry!.amountKrw)}
                           </span>
                           <Link
                             href={`/entries/new?accountId=${acc.id}`}
@@ -233,10 +231,10 @@ export default async function DashboardPage() {
                       </li>
                     ))}
                   </ul>
-                )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* 하단 버튼 */}
