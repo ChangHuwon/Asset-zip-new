@@ -114,19 +114,24 @@ export default async function DashboardPage() {
       <main className="flex-1 px-4 py-5 max-w-2xl mx-auto w-full animate-fade-up">
 
         {/* 총액 카드 */}
-        <div className="bg-canvas rounded-2xl mb-4 overflow-hidden" style={{ boxShadow: "var(--shadow-card)" }}>
-          <div className="h-1 bg-primary" />
+        <div
+          className="rounded-2xl mb-4 overflow-hidden"
+          style={{
+            background: "linear-gradient(150deg, #1e1e2e 0%, #2d2d50 100%)",
+            boxShadow: "var(--shadow-card)",
+          }}
+        >
           <div className="px-6 pt-5 pb-6">
-            <p className="text-[13px] font-semibold text-muted uppercase tracking-wide mb-1">
+            <p className="text-[13px] font-semibold uppercase tracking-wide mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>
               {family?.name} 공동자산
             </p>
-            <p className="text-[48px] font-bold text-ink tracking-tight leading-none">
+            <p className="text-[48px] font-bold tracking-tight leading-none text-white">
               {krw(grandTotal)}
             </p>
 
             {/* 비중 바 */}
             {grandTotal > BigInt(0) && activeCategories.length > 0 && (
-              <div className="mt-4 flex h-[6px] rounded-full overflow-hidden gap-0.5">
+              <div className="mt-4 flex h-[5px] rounded-full overflow-hidden gap-0.5">
                 {activeCategories.map((cat, i) => (
                   <div
                     key={cat.id}
@@ -134,6 +139,7 @@ export default async function DashboardPage() {
                     style={{
                       width: pct(cat.total, grandTotal),
                       backgroundColor: SEGMENT_COLORS[i % SEGMENT_COLORS.length],
+                      opacity: 0.85,
                     }}
                     title={`${cat.name}: ${pct(cat.total, grandTotal)}`}
                   />
@@ -143,7 +149,7 @@ export default async function DashboardPage() {
 
             {session.isOwner && (
               <div className="mt-4 flex items-center gap-2">
-                <span className="text-xs text-muted">초대코드</span>
+                <span className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>초대코드</span>
                 <CopyCode code={family?.inviteCode ?? ""} />
               </div>
             )}

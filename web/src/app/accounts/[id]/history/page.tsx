@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { verifySession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { EntryActions } from "./entry-actions";
+import type { EntryForEdit } from "@/app/entries/[id]/edit/form";
 
 const TYPE_META = {
   BALANCE: { label: "잔액 입력", color: "#767676", bg: "#f2f2f2" },
@@ -44,6 +45,32 @@ function isSameDay(a: Date, b: Date) {
 
 function displayDate(entry: { valueDate: Date | null; recordedAt: Date }) {
   return entry.valueDate ?? entry.recordedAt;
+}
+
+function toDateLocal(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function computeInitialAmount(entry: {
+  entryType: string;
+  originalAmount: { toString(): string } | null;
+  amountKrw: bigint;
+  deltaKrw: bigint | null;
+}): string {
+  if (entry.entryType === "BALANCE") {
+    return entry.originalAmount
+      ? entry.originalAmount.toString()
+      : Number(entry.amountKrw).toString();
+  }
+  if (entry.entryType === "DEPOSIT" || entry.entryType === "WITHDRAWAL") {
+    return entry.originalAmount
+      ? entry.originalAmount.toString()
+      : Math.abs(Number(entry.deltaKrw ?? entry.amountKrw)).toString();
+  }
+  if (entry.entryType === "INVEST_RETURN") {
+    return Number(entry.deltaKrw ?? 0).toString();
+  }
+  return "";
 }
 
 export default async function AccountHistoryPage({
@@ -92,18 +119,20 @@ export default async function AccountHistoryPage({
       <main className="flex-1 px-4 py-5 max-w-2xl mx-auto w-full animate-fade-up">
         {/* 현재 잔액 카드 */}
         <div
-          className="bg-canvas rounded-2xl mb-4 overflow-hidden"
-          style={{ boxShadow: "var(--shadow-card)" }}
+          className="rounded-2xl mb-4 overflow-hidden"
+          style={{
+            background: "linear-gradient(150deg, #1e1e2e 0%, #2d2d50 100%)",
+            boxShadow: "var(--shadow-card)",
+          }}
         >
-          <div className="h-1 bg-primary" />
           <div className="px-6 pt-5 pb-6">
-            <p className="text-[13px] font-semibold text-muted uppercase tracking-wide mb-1">
+            <p className="text-[13px] font-semibold uppercase tracking-wide mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>
               현재 잔액
             </p>
-            <p className="text-[40px] font-bold text-ink tracking-tight leading-none">
+            <p className="text-[40px] font-bold tracking-tight leading-none text-white">
               {krw(currentBalance)}
             </p>
-            <p className="text-[13px] text-muted mt-2">
+            <p className="text-[13px] mt-2" style={{ color: "rgba(255,255,255,0.4)" }}>
               {account.currency !== "KRW" ? `통화: ${account.currency}` : ""}
             </p>
           </div>
@@ -129,13 +158,30 @@ export default async function AccountHistoryPage({
         {/* 내역 목록 */}
         {entries.length > 0 && (
           <div className="flex flex-col gap-1">
-            {entries.map((entry) => {
+            {entries.map((entry, i) => {
               const dateToShow = displayDate(entry);
               const showDayHeader = prevDay === null || !isSameDay(prevDay, dateToShow);
               prevDay = dateToShow;
               const meta = TYPE_META[entry.entryType as keyof typeof TYPE_META] ?? TYPE_META.BALANCE;
               const deltaStr = formatDelta(entry.deltaKrw, entry.entryType);
               const deltaNum = entry.deltaKrw ? Number(entry.deltaKrw) : null;
+
+              const prevBalanceKrw = i + 1 < entries.length
+                ? Number(entries[i + 1].amountKrw)
+                : 0;
+
+              const entryForEdit: EntryForEdit = {
+                id: entry.id,
+                accountId: account.id,
+                accountName: account.name,
+                entryType: entry.entryType,
+                initialAmount: computeInitialAmount(entry),
+                initialFxRate: entry.fxRateUsed?.toString() ?? "",
+                currency: entry.originalCurrency ?? account.currency,
+                note: entry.note ?? "",
+                valueDate: toDateLocal(entry.valueDate ?? entry.recordedAt),
+                prevBalanceKrw,
+              };
 
               return (
                 <div key={entry.id}>
@@ -176,7 +222,7 @@ export default async function AccountHistoryPage({
                         )}
                       </div>
                     </div>
-                    <EntryActions entryId={entry.id} />
+                    <EntryActions entry={entryForEdit} />
                   </div>
                 </div>
               );
