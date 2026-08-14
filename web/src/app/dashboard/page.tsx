@@ -143,7 +143,7 @@ export default async function DashboardPage() {
                 className="mb-1 h-8 px-3 flex items-center rounded-[8px] text-[12px] font-semibold shrink-0"
                 style={{ backgroundColor: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.85)" }}
               >
-                금액 추이 →
+                Analysis →
               </Link>
             </div>
 

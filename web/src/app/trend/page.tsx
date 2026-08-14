@@ -2,6 +2,7 @@ import Link from "next/link";
 import { verifySession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { TrendChart } from "./trend-chart";
+import { CategoryPie } from "./category-pie";
 
 type Period = "7d" | "1m" | "3m" | "6m" | "1y";
 
@@ -12,6 +13,8 @@ const PERIOD_OPTIONS: { value: Period; label: string }[] = [
   { value: "6m", label: "6개월" },
   { value: "1y", label: "1년" },
 ];
+
+const SLICE_COLORS = ["#ff385c", "#00a699", "#fc642d", "#767676", "#222222"];
 
 function getPeriodDays(period: Period): number {
   switch (period) {
@@ -33,6 +36,12 @@ function getStepDays(days: number): number {
 export type DailySnapshot = {
   date: string;
   totalKrw: number;
+};
+
+export type CategorySlice = {
+  name: string;
+  value: number;
+  color: string;
 };
 
 async function computeSnapshots(
@@ -90,6 +99,39 @@ async function computeSnapshots(
   return snapshots;
 }
 
+async function getCategoryDistribution(familyId: string): Promise<CategorySlice[]> {
+  const categories = await prisma.assetCategory.findMany({
+    where: { familyId },
+    orderBy: { sortOrder: "asc" },
+    include: {
+      accounts: {
+        where: { familyId },
+        include: {
+          entries: {
+            orderBy: [
+              { valueDate: { sort: "desc", nulls: "last" } },
+              { recordedAt: "desc" },
+            ],
+            take: 1,
+            select: { amountKrw: true },
+          },
+        },
+      },
+    },
+  });
+
+  return categories
+    .map((cat, i) => ({
+      name: cat.name,
+      value: cat.accounts.reduce(
+        (sum, acc) => sum + (acc.entries[0] ? Number(acc.entries[0].amountKrw) : 0),
+        0,
+      ),
+      color: SLICE_COLORS[i % SLICE_COLORS.length],
+    }))
+    .filter((c) => c.value > 0);
+}
+
 function krw(n: number) {
   return n.toLocaleString("ko-KR") + "원";
 }
@@ -113,25 +155,35 @@ export default async function TrendPage({
   fromDate.setDate(fromDate.getDate() - days);
   fromDate.setHours(0, 0, 0, 0);
 
-  const snapshots = await computeSnapshots(session.familyId, fromDate, toDate, stepDays);
+  const [snapshots, categorySlices] = await Promise.all([
+    computeSnapshots(session.familyId, fromDate, toDate, stepDays),
+    getCategoryDistribution(session.familyId),
+  ]);
 
   const nonZero = snapshots.filter((s) => s.totalKrw > 0);
   const first = nonZero[0]?.totalKrw ?? 0;
   const last = snapshots[snapshots.length - 1]?.totalKrw ?? 0;
   const delta = last - first;
   const deltaPct = first > 0 ? ((delta / first) * 100).toFixed(1) : null;
+  const grandTotal = categorySlices.reduce((s, c) => s + c.value, 0);
 
   return (
     <div className="flex flex-col min-h-screen">
       <header className="flex items-center px-5 h-14 bg-canvas border-b border-hairline sticky top-0 z-10">
         <Link href="/dashboard" className="text-2xl text-muted leading-none">‹</Link>
         <div className="flex-1 text-center">
-          <p className="text-[15px] font-semibold text-ink">금액 추이</p>
+          <p className="text-[15px] font-semibold text-ink">Analysis</p>
         </div>
         <div className="w-6" />
       </header>
 
       <main className="flex-1 px-4 py-5 max-w-2xl mx-auto w-full animate-fade-up">
+
+        {/* ── 금액 추이 섹션 ── */}
+        <p className="text-[13px] font-semibold text-muted uppercase tracking-wide px-1 mb-3">
+          금액 추이
+        </p>
+
         {/* 기간 선택 탭 */}
         <div className="flex gap-1.5 mb-4">
           {PERIOD_OPTIONS.map((opt) => (
@@ -179,8 +231,16 @@ export default async function TrendPage({
           )}
         </div>
 
-        {/* 차트 */}
+        {/* 추이 차트 */}
         <TrendChart data={snapshots} />
+
+        {/* ── 자산 구성 섹션 ── */}
+        <p className="text-[13px] font-semibold text-muted uppercase tracking-wide px-1 mt-6 mb-3">
+          자산 구성
+        </p>
+
+        <CategoryPie data={categorySlices} total={grandTotal} />
+
       </main>
     </div>
   );
