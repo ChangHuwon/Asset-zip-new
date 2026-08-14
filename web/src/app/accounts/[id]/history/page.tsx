@@ -106,20 +106,10 @@ export default async function AccountHistoryPage({
     <div className="flex flex-col min-h-screen">
       <header className="flex items-center px-5 h-14 bg-canvas border-b border-hairline sticky top-0 z-10">
         <Link href="/dashboard" className="text-2xl text-muted leading-none">‹</Link>
-        <AccountInfoModal
-          account={{
-            name: account.name,
-            categoryName: account.category.name,
-            currency: account.currency,
-            note: account.note,
-            createdAt: account.createdAt.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }),
-          }}
-        >
-          <div className="flex-1 text-center">
-            <p className="text-[15px] font-semibold text-ink">{account.name}</p>
-            <p className="text-[11px] text-muted">{account.category.name}</p>
-          </div>
-        </AccountInfoModal>
+        <div className="flex-1 text-center">
+          <p className="text-[15px] font-semibold text-ink">{account.name}</p>
+          <p className="text-[11px] text-muted">{account.category.name}</p>
+        </div>
         <NewEntryModal
           accountId={account.id}
           accountName={account.name}
@@ -133,26 +123,36 @@ export default async function AccountHistoryPage({
       </header>
 
       <main className="flex-1 px-4 py-5 max-w-2xl mx-auto w-full animate-fade-up">
-        {/* 현재 잔액 카드 */}
-        <div
-          className="rounded-2xl mb-4 overflow-hidden"
-          style={{
-            background: "linear-gradient(150deg, #1e1e2e 0%, #2d2d50 100%)",
-            boxShadow: "var(--shadow-card)",
+        {/* 현재 잔액 카드 — 클릭 시 계좌 정보 모달 */}
+        <AccountInfoModal
+          account={{
+            name: account.name,
+            categoryName: account.category.name,
+            currency: account.currency,
+            note: account.note,
+            createdAt: account.createdAt.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }),
           }}
         >
-          <div className="px-6 pt-5 pb-6">
-            <p className="text-[13px] font-semibold uppercase tracking-wide mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>
-              현재 잔액
-            </p>
-            <p className="text-[40px] font-bold tracking-tight leading-none text-white">
-              {krw(currentBalance)}
-            </p>
-            <p className="text-[13px] mt-2" style={{ color: "rgba(255,255,255,0.4)" }}>
-              {account.currency !== "KRW" ? `통화: ${account.currency}` : ""}
-            </p>
+          <div
+            className="rounded-2xl mb-4 overflow-hidden cursor-pointer"
+            style={{
+              background: "linear-gradient(150deg, #1e1e2e 0%, #2d2d50 100%)",
+              boxShadow: "var(--shadow-card)",
+            }}
+          >
+            <div className="px-6 pt-5 pb-6">
+              <p className="text-[13px] font-semibold uppercase tracking-wide mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>
+                현재 잔액
+              </p>
+              <p className="text-[40px] font-bold tracking-tight leading-none text-white">
+                {krw(currentBalance)}
+              </p>
+              <p className="text-[13px] mt-2" style={{ color: "rgba(255,255,255,0.4)" }}>
+                {account.currency !== "KRW" ? `통화: ${account.currency}` : ""}
+              </p>
+            </div>
           </div>
-        </div>
+        </AccountInfoModal>
 
         {/* 내역 없음 */}
         {entries.length === 0 && (
