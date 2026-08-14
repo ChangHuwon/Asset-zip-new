@@ -4,12 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { logout } from "@/actions/auth";
 import { CopyCode } from "./copy-code";
 import { CATEGORY_COLORS } from "@/lib/category-colors";
+import { NewEntryModal } from "@/components/new-entry-modal";
 
 const SEGMENT_COLORS = CATEGORY_COLORS;
 
 type AccountWithEntry = {
   id: string;
   name: string;
+  currency: string;
   latestEntry: {
     amountKrw: bigint;
     memberName: string;
@@ -54,6 +56,7 @@ async function getDashboardData(familyId: string) {
         return {
           id: acc.id,
           name: acc.name,
+          currency: acc.currency,
           latestEntry: {
             amountKrw: latest.amountKrw,
             memberName: latest.member.displayName,
@@ -246,12 +249,16 @@ export default async function DashboardPage() {
                         <span className="text-[15px] font-bold text-ink">
                           {krw(acc.latestEntry.amountKrw)}
                         </span>
-                        <Link
-                          href={`/entries/new?accountId=${acc.id}`}
-                          className="text-[13px] font-semibold text-primary bg-[#fff1f3] px-3 py-1.5 rounded-full"
+                        <NewEntryModal
+                          accountId={acc.id}
+                          accountName={acc.name}
+                          currency={acc.currency}
+                          currentBalanceKrw={Number(acc.latestEntry.amountKrw)}
                         >
-                          입력
-                        </Link>
+                          <button className="text-[13px] font-semibold text-primary bg-[#fff1f3] px-3 py-1.5 rounded-full">
+                            입력
+                          </button>
+                        </NewEntryModal>
                       </div>
                     </li>
                   ))}

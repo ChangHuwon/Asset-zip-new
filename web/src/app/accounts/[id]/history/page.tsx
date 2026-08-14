@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { verifySession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { EntryActions } from "./entry-actions";
+import { NewEntryModal } from "@/components/new-entry-modal";
 import type { EntryForEdit } from "@/components/entry-edit-form";
 
 const TYPE_META = {
@@ -108,12 +109,16 @@ export default async function AccountHistoryPage({
           <p className="text-[15px] font-semibold text-ink">{account.name}</p>
           <p className="text-[11px] text-muted">{account.category.name}</p>
         </div>
-        <Link
-          href={`/entries/new?accountId=${account.id}`}
-          className="h-8 px-3 flex items-center rounded-[8px] text-[13px] font-semibold bg-primary text-on-primary"
+        <NewEntryModal
+          accountId={account.id}
+          accountName={account.name}
+          currency={account.currency}
+          currentBalanceKrw={Number(currentBalance)}
         >
-          + 추가
-        </Link>
+          <button className="h-8 px-3 flex items-center rounded-[8px] text-[13px] font-semibold bg-primary text-on-primary">
+            + 추가
+          </button>
+        </NewEntryModal>
       </header>
 
       <main className="flex-1 px-4 py-5 max-w-2xl mx-auto w-full animate-fade-up">
@@ -146,12 +151,16 @@ export default async function AccountHistoryPage({
           >
             <p className="text-[17px] font-semibold text-ink mb-1">아직 내역이 없습니다</p>
             <p className="text-[14px] text-muted mb-5">첫 내역을 입력해보세요.</p>
-            <Link
-              href={`/entries/new?accountId=${account.id}`}
-              className="inline-flex h-11 items-center px-6 rounded-[10px] bg-primary text-on-primary text-[14px] font-semibold"
+            <NewEntryModal
+              accountId={account.id}
+              accountName={account.name}
+              currency={account.currency}
+              currentBalanceKrw={0}
             >
-              내역 추가
-            </Link>
+              <button className="inline-flex h-11 items-center px-6 rounded-[10px] bg-primary text-on-primary text-[14px] font-semibold">
+                내역 추가
+              </button>
+            </NewEntryModal>
           </div>
         )}
 
