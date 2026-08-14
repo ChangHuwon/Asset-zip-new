@@ -32,6 +32,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full flex flex-col text-ink antialiased">
         {children}
+        <footer className="py-4 text-center text-[11px] text-muted">
+          © ChangHuwon All Rights Reserved
+        </footer>
       </body>
     </html>
   );
