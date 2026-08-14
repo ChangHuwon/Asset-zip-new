@@ -134,9 +134,18 @@ export default async function DashboardPage() {
             <p className="text-[13px] font-semibold uppercase tracking-wide mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>
               {family?.name} 공동자산
             </p>
-            <p className="text-[48px] font-bold tracking-tight leading-none text-white">
-              {krw(grandTotal)}
-            </p>
+            <div className="flex items-end justify-between gap-3">
+              <p className="text-[48px] font-bold tracking-tight leading-none text-white">
+                {krw(grandTotal)}
+              </p>
+              <Link
+                href="/trend"
+                className="mb-1 h-8 px-3 flex items-center rounded-[8px] text-[12px] font-semibold shrink-0"
+                style={{ backgroundColor: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.85)" }}
+              >
+                금액 추이 →
+              </Link>
+            </div>
 
             {/* 비중 바 */}
             {grandTotal > BigInt(0) && activeCategories.length > 0 && (
