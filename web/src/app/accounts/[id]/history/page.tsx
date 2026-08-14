@@ -4,6 +4,7 @@ import { verifySession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { EntryActions } from "./entry-actions";
 import { NewEntryModal } from "@/components/new-entry-modal";
+import { AccountInfoModal } from "./account-info-modal";
 import type { EntryForEdit } from "@/components/entry-edit-form";
 
 const TYPE_META = {
@@ -84,7 +85,7 @@ export default async function AccountHistoryPage({
 
   const account = await prisma.account.findUnique({
     where: { id, familyId: session.familyId },
-    select: { id: true, name: true, currency: true, category: { select: { name: true } } },
+    select: { id: true, name: true, currency: true, note: true, createdAt: true, category: { select: { name: true } } },
   });
   if (!account) notFound();
 
@@ -105,10 +106,20 @@ export default async function AccountHistoryPage({
     <div className="flex flex-col min-h-screen">
       <header className="flex items-center px-5 h-14 bg-canvas border-b border-hairline sticky top-0 z-10">
         <Link href="/dashboard" className="text-2xl text-muted leading-none">‹</Link>
-        <div className="flex-1 text-center">
-          <p className="text-[15px] font-semibold text-ink">{account.name}</p>
-          <p className="text-[11px] text-muted">{account.category.name}</p>
-        </div>
+        <AccountInfoModal
+          account={{
+            name: account.name,
+            categoryName: account.category.name,
+            currency: account.currency,
+            note: account.note,
+            createdAt: account.createdAt.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }),
+          }}
+        >
+          <div className="flex-1 text-center">
+            <p className="text-[15px] font-semibold text-ink">{account.name}</p>
+            <p className="text-[11px] text-muted">{account.category.name}</p>
+          </div>
+        </AccountInfoModal>
         <NewEntryModal
           accountId={account.id}
           accountName={account.name}
