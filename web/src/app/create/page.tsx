@@ -9,7 +9,7 @@ export default function CreatePage() {
   return (
     <div className="flex flex-col min-h-screen bg-canvas">
       <header className="flex items-center px-5 h-14">
-        <Link href="/start" className="text-2xl text-muted leading-none">‹</Link>
+        <Link href="/start" className="w-10 h-10 flex items-center justify-center rounded-[8px] text-[22px] text-muted hover:bg-hairline transition-colors">‹</Link>
       </header>
 
       <main className="flex-1 px-6 pt-2 pb-10 max-w-sm mx-auto w-full animate-fade-up">

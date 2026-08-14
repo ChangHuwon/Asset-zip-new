@@ -13,7 +13,7 @@ export default async function CategoriesPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <header className="flex items-center px-5 h-14 bg-canvas border-b border-hairline">
-        <a href="/dashboard" className="text-2xl text-muted leading-none">‹</a>
+        <a href="/dashboard" className="w-10 h-10 flex items-center justify-center rounded-[8px] text-[22px] text-muted hover:bg-hairline transition-colors">‹</a>
         <h1 className="flex-1 text-center text-[15px] font-semibold text-ink">카테고리 관리</h1>
         <div className="w-6" />
       </header>
