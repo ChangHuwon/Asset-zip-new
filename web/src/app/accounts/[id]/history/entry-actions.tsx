@@ -92,7 +92,7 @@ export function EntryActions({ entry }: { entry: EntryForEdit }) {
         onClick={() => setOpen(true)}
         className="h-7 px-2.5 rounded-[6px] text-[11px] font-semibold text-primary bg-[#fff1f3] shrink-0"
       >
-        수정
+        Edit
       </button>
       {modal}
     </>
