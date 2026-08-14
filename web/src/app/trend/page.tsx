@@ -3,6 +3,7 @@ import { verifySession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { TrendChart } from "./trend-chart";
 import { CategoryPie } from "./category-pie";
+import { CATEGORY_COLORS } from "@/lib/category-colors";
 
 type Period = "7d" | "1m" | "3m" | "6m" | "1y";
 
@@ -12,16 +13,6 @@ const PERIOD_OPTIONS: { value: Period; label: string }[] = [
   { value: "3m", label: "3개월" },
   { value: "6m", label: "6개월" },
   { value: "1y", label: "1년" },
-];
-
-const SLICE_COLORS = [
-  "#ff385c", // 레드
-  "#3b82f6", // 블루
-  "#f59e0b", // 앰버
-  "#10b981", // 에메랄드
-  "#8b5cf6", // 바이올렛
-  "#06b6d4", // 시안
-  "#f97316", // 오렌지
 ];
 
 function getPeriodDays(period: Period): number {
@@ -135,7 +126,7 @@ async function getCategoryDistribution(familyId: string): Promise<CategorySlice[
         (sum, acc) => sum + (acc.entries[0] ? Number(acc.entries[0].amountKrw) : 0),
         0,
       ),
-      color: SLICE_COLORS[i % SLICE_COLORS.length],
+      color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
     }))
     .filter((c) => c.value > 0);
 }

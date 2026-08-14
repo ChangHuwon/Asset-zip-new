@@ -3,8 +3,9 @@ import { verifySession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { logout } from "@/actions/auth";
 import { CopyCode } from "./copy-code";
+import { CATEGORY_COLORS } from "@/lib/category-colors";
 
-const SEGMENT_COLORS = ["#ff385c", "#00a699", "#fc642d", "#767676", "#222222"];
+const SEGMENT_COLORS = CATEGORY_COLORS;
 
 type AccountWithEntry = {
   id: string;
