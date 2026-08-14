@@ -1,34 +1,52 @@
 "use client";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { deleteEntry } from "@/actions/entries";
 import { EditEntryForm, type EntryForEdit } from "@/components/entry-edit-form";
 
 export function EntryActions({ entry }: { entry: EntryForEdit }) {
   const [open, setOpen] = useState(false);
+  const [visible, setVisible] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteState, deleteAction, deletePending] = useActionState(deleteEntry, null);
   const [mounted, setMounted] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
-    document.body.style.overflow = open ? "hidden" : "";
+    if (open) {
+      document.body.style.overflow = "hidden";
+      requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+    } else {
+      document.body.style.overflow = "";
+    }
     return () => { document.body.style.overflow = ""; };
   }, [open]);
 
   function close() {
-    setOpen(false);
+    setVisible(false);
     setConfirmDelete(false);
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(() => setOpen(false), 320);
   }
 
   const modal = open && mounted && createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center"
-      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+      style={{
+        backgroundColor: visible ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0)",
+        transition: "background-color 0.32s ease",
+      }}
       onClick={(e) => { if (e.target === e.currentTarget) close(); }}
     >
-      <div className="w-full max-w-2xl bg-canvas rounded-t-2xl overflow-y-auto max-h-[92vh]">
+      <div
+        className="w-full max-w-2xl bg-canvas rounded-t-2xl overflow-y-auto max-h-[92vh]"
+        style={{
+          transform: visible ? "translateY(0)" : "translateY(100%)",
+          transition: "transform 0.32s cubic-bezier(0.32,0.72,0,1)",
+        }}
+      >
         {/* 모달 헤더 */}
         <div className="relative flex items-center justify-between px-5 h-14 border-b border-hairline sticky top-0 bg-canvas z-10">
           <div className="w-6" />
@@ -92,7 +110,7 @@ export function EntryActions({ entry }: { entry: EntryForEdit }) {
         onClick={() => setOpen(true)}
         className="h-7 px-2.5 rounded-[6px] text-[11px] font-semibold text-primary bg-[#fff1f3] shrink-0"
       >
-        Edit
+        수정
       </button>
       {modal}
     </>
