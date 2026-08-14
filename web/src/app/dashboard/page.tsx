@@ -111,8 +111,17 @@ export default async function DashboardPage() {
       {/* 헤더 */}
       <header className="flex items-center justify-between px-5 h-14 bg-canvas border-b border-hairline sticky top-0 z-10">
         <span className="text-[17px] font-bold text-ink tracking-tight">Asset.ZIP</span>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted">{session.displayName}</span>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/settings/pin"
+            className="flex items-center gap-1.5 text-[13px] text-muted hover:text-ink transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            {session.displayName}
+          </Link>
           <form action={logout}>
             <button type="submit" className="h-8 px-3 text-[13px] font-semibold text-muted border border-hairline rounded-[8px] bg-canvas">
               로그아웃
@@ -132,21 +141,21 @@ export default async function DashboardPage() {
           }}
         >
           <div className="px-6 pt-5 pb-6">
-            <p className="text-[13px] font-semibold uppercase tracking-wide mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>
-              {family?.name} 공동자산
-            </p>
-            <div className="flex items-end justify-between gap-3">
-              <p className="text-[48px] font-bold tracking-tight leading-none text-white">
-                {krw(grandTotal)}
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[13px] font-semibold uppercase tracking-wide" style={{ color: "rgba(255,255,255,0.5)" }}>
+                {family?.name} 공동자산
               </p>
               <Link
                 href="/trend"
-                className="mb-1 h-8 px-3 flex items-center rounded-[8px] text-[12px] font-semibold shrink-0"
+                className="h-7 px-3 flex items-center rounded-[8px] text-[12px] font-semibold"
                 style={{ backgroundColor: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.85)" }}
               >
                 Analysis →
               </Link>
             </div>
+            <p className="text-[40px] sm:text-[48px] font-bold tracking-tight leading-tight text-white">
+              {krw(grandTotal)}
+            </p>
 
             {/* 비중 바 */}
             {grandTotal > BigInt(0) && activeCategories.length > 0 && (

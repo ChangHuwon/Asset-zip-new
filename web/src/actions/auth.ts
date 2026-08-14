@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { createSession, deleteSession } from "@/lib/session";
+import { verifySession } from "@/lib/dal";
 import { generateInviteCode } from "@/lib/invite-code";
 
 const DEFAULT_CATEGORIES = [
@@ -148,4 +149,39 @@ export async function loginWithPin(
 export async function logout() {
   await deleteSession();
   redirect("/login");
+}
+
+export async function changePin(
+  _: ActionResult | null,
+  formData: FormData
+): Promise<ActionResult> {
+  const currentPin = (formData.get("currentPin") as string) ?? "";
+  const newPin = (formData.get("newPin") as string) ?? "";
+  const confirmPin = (formData.get("confirmPin") as string) ?? "";
+
+  if (!/^\d{6}$/.test(currentPin)) return { success: false, error: "현재 PIN은 숫자 6자리여야 합니다." };
+  if (!/^\d{6}$/.test(newPin)) return { success: false, error: "새 PIN은 숫자 6자리여야 합니다." };
+  if (newPin !== confirmPin) return { success: false, error: "새 PIN이 일치하지 않습니다." };
+  if (currentPin === newPin) return { success: false, error: "현재 PIN과 동일한 PIN은 사용할 수 없습니다." };
+
+  const session = await verifySession();
+  const currentHash = hashPin(currentPin);
+
+  const member = await prisma.member.findFirst({
+    where: { id: session.memberId, pinHash: currentHash },
+  });
+  if (!member) return { success: false, error: "현재 PIN이 올바르지 않습니다." };
+
+  const newHash = hashPin(newPin);
+  const duplicate = await prisma.member.findFirst({
+    where: { pinHash: newHash, NOT: { id: session.memberId } },
+  });
+  if (duplicate) return { success: false, error: "이미 사용 중인 PIN입니다. 다른 번호를 선택해주세요." };
+
+  await prisma.member.update({
+    where: { id: session.memberId },
+    data: { pinHash: newHash },
+  });
+
+  return { success: true };
 }

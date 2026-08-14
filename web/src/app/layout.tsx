@@ -5,6 +5,14 @@ export const metadata: Metadata = {
   title: "Asset.ZIP",
   description: "우리 가족 공동자산 장부",
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "Asset.ZIP",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
