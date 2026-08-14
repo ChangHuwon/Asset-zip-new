@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-// import { verifySession } from "@/lib/dal"; // TEMP: bypassed for UI verification
+import { verifySession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { EntryActions } from "./entry-actions";
 import type { EntryForEdit } from "@/components/entry-edit-form";
@@ -78,11 +78,11 @@ export default async function AccountHistoryPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  // TEMP: const session = await verifySession(); // bypassed for UI verification
+  const session = await verifySession();
   const { id } = await params;
 
   const account = await prisma.account.findUnique({
-    where: { id },
+    where: { id, familyId: session.familyId },
     select: { id: true, name: true, currency: true, category: { select: { name: true } } },
   });
   if (!account) notFound();
