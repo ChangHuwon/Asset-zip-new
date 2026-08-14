@@ -110,7 +110,7 @@ export default async function AccountHistoryPage({
         </div>
         <Link
           href={`/entries/new?accountId=${account.id}`}
-          className="text-[13px] font-semibold text-primary"
+          className="h-8 px-3 flex items-center rounded-[8px] text-[13px] font-semibold bg-primary text-on-primary"
         >
           + 추가
         </Link>
@@ -210,19 +210,21 @@ export default async function AccountHistoryPage({
                         )}
                         <p className="text-[12px] text-muted mt-1">{entry.member.displayName}</p>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-[17px] font-bold text-ink">{krw(entry.amountKrw)}</p>
-                        {deltaStr && (
-                          <p
-                            className="text-[13px] font-semibold"
-                            style={{ color: deltaNum !== null && deltaNum >= 0 ? "#00a699" : "#fc642d" }}
-                          >
-                            {deltaStr}
-                          </p>
-                        )}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="text-right">
+                          <p className="text-[17px] font-bold text-ink">{krw(entry.amountKrw)}</p>
+                          {deltaStr && (
+                            <p
+                              className="text-[13px] font-semibold"
+                              style={{ color: deltaNum !== null && deltaNum >= 0 ? "#00a699" : "#fc642d" }}
+                            >
+                              {deltaStr}
+                            </p>
+                          )}
+                        </div>
+                        <EntryActions entry={entryForEdit} />
                       </div>
                     </div>
-                    <EntryActions entry={entryForEdit} />
                   </div>
                 </div>
               );

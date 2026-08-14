@@ -87,15 +87,13 @@ export function EntryActions({ entry }: { entry: EntryForEdit }) {
 
   return (
     <>
-      <div className="mt-3 pt-3 border-t border-hairline">
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="w-full h-8 flex items-center justify-center rounded-[8px] text-[13px] font-semibold text-primary bg-[#fff1f3]"
-        >
-          수정
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="h-7 px-2.5 rounded-[6px] text-[11px] font-semibold text-primary bg-[#fff1f3] shrink-0"
+      >
+        수정
+      </button>
       {modal}
     </>
   );

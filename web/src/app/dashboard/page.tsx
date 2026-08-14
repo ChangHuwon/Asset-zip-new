@@ -113,7 +113,7 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted">{session.displayName}</span>
           <form action={logout}>
-            <button type="submit" className="text-sm text-muted">
+            <button type="submit" className="h-8 px-3 text-[13px] font-semibold text-muted border border-hairline rounded-[8px] bg-canvas">
               로그아웃
             </button>
           </form>
