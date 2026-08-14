@@ -151,6 +151,56 @@ export async function logout() {
   redirect("/login");
 }
 
+export async function deleteMember(
+  _: ActionResult | null,
+  formData: FormData
+): Promise<ActionResult> {
+  const session = await verifySession();
+  if (!session.isOwner) return { success: false, error: "권한이 없습니다." };
+
+  const memberId = formData.get("memberId") as string;
+  if (memberId === session.memberId) return { success: false, error: "자신의 계정은 삭제할 수 없습니다." };
+
+  const member = await prisma.member.findUnique({ where: { id: memberId } });
+  if (!member || member.familyId !== session.familyId) return { success: false, error: "잘못된 사용자입니다." };
+  if (member.isOwner) return { success: false, error: "관리자 계정은 삭제할 수 없습니다." };
+  if (member.displayName.endsWith("(계정삭제)")) return { success: false, error: "이미 삭제된 계정입니다." };
+
+  const { randomBytes } = await import("crypto");
+  const invalidPinHash = randomBytes(32).toString("hex");
+
+  await prisma.member.update({
+    where: { id: memberId },
+    data: { displayName: `${member.displayName}(계정삭제)`, pinHash: invalidPinHash, failedAttempts: 0, lockedUntil: null },
+  });
+
+  return { success: true };
+}
+
+export async function resetMemberPin(
+  _: ActionResult | null,
+  formData: FormData
+): Promise<ActionResult> {
+  const session = await verifySession();
+  if (!session.isOwner) return { success: false, error: "권한이 없습니다." };
+
+  const memberId = formData.get("memberId") as string;
+  const member = await prisma.member.findFirst({ where: { id: memberId, familyId: session.familyId } });
+  if (!member) return { success: false, error: "잘못된 사용자입니다." };
+  if (member.displayName.endsWith("(계정삭제)")) return { success: false, error: "삭제된 계정은 PIN을 초기화할 수 없습니다." };
+
+  const tempHash = hashPin("111111");
+  const duplicate = await prisma.member.findFirst({ where: { pinHash: tempHash, NOT: { id: memberId } } });
+  if (duplicate) return { success: false, error: "임시 PIN(111111)이 이미 다른 사용자에 의해 사용 중입니다." };
+
+  await prisma.member.update({
+    where: { id: memberId },
+    data: { pinHash: tempHash, failedAttempts: 0, lockedUntil: null },
+  });
+
+  return { success: true };
+}
+
 export async function changePin(
   _: ActionResult | null,
   formData: FormData

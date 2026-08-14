@@ -125,6 +125,14 @@ export default async function DashboardPage() {
             </svg>
             {session.displayName}
           </Link>
+          {session.isOwner && (
+            <Link
+              href="/settings/members"
+              className="h-8 px-3 text-[13px] font-semibold text-muted border border-hairline rounded-[8px] bg-canvas"
+            >
+              계정관리
+            </Link>
+          )}
           <form action={logout}>
             <button type="submit" className="h-8 px-3 text-[13px] font-semibold text-muted border border-hairline rounded-[8px] bg-canvas">
               로그아웃
