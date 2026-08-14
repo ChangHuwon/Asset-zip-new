@@ -6,19 +6,21 @@ import { CopyCode } from "./copy-code";
 
 const SEGMENT_COLORS = ["#ff385c", "#00a699", "#fc642d", "#767676", "#222222"];
 
+type AccountWithEntry = {
+  id: string;
+  name: string;
+  latestEntry: {
+    amountKrw: bigint;
+    memberName: string;
+    recordedAt: Date;
+  };
+};
+
 type CategorySummary = {
   id: string;
   name: string;
   total: bigint;
-  accounts: {
-    id: string;
-    name: string;
-    latestEntry: {
-      amountKrw: bigint;
-      memberName: string;
-      recordedAt: Date;
-    } | null;
-  }[];
+  accounts: AccountWithEntry[];
 };
 
 async function getDashboardData(familyId: string) {
@@ -42,30 +44,36 @@ async function getDashboardData(familyId: string) {
     },
   });
 
+  // 거래 내역이 있는 계좌만 포함
   const summaries: CategorySummary[] = categories.map((cat) => {
-    const accounts = cat.accounts.map((acc) => {
-      const latest = acc.entries[0] ?? null;
-      return {
-        id: acc.id,
-        name: acc.name,
-        latestEntry: latest
-          ? {
-              amountKrw: latest.amountKrw,
-              memberName: latest.member.displayName,
-              recordedAt: latest.recordedAt,
-            }
-          : null,
-      };
-    });
+    const accounts: AccountWithEntry[] = cat.accounts
+      .filter((acc) => acc.entries.length > 0)
+      .map((acc) => {
+        const latest = acc.entries[0];
+        return {
+          id: acc.id,
+          name: acc.name,
+          latestEntry: {
+            amountKrw: latest.amountKrw,
+            memberName: latest.member.displayName,
+            recordedAt: latest.recordedAt,
+          },
+        };
+      });
+
     const total = accounts.reduce(
-      (sum: bigint, a) => sum + (a.latestEntry?.amountKrw ?? BigInt(0)),
+      (sum: bigint, a) => sum + a.latestEntry.amountKrw,
       BigInt(0)
     );
     return { id: cat.id, name: cat.name, total, accounts };
   });
 
   const grandTotal = summaries.reduce((s: bigint, c) => s + c.total, BigInt(0));
-  return { summaries, grandTotal };
+
+  // 등록된 계좌 존재 여부 (내역 유무 무관)
+  const totalAccountCount = categories.reduce((n, cat) => n + cat.accounts.length, 0);
+
+  return { summaries, grandTotal, totalAccountCount };
 }
 
 function krw(amount: bigint) {
@@ -87,13 +95,14 @@ function timeAgo(date: Date) {
 
 export default async function DashboardPage() {
   const session = await verifySession();
-  const { summaries, grandTotal } = await getDashboardData(session.familyId);
+  const { summaries, grandTotal, totalAccountCount } = await getDashboardData(session.familyId);
   const family = await prisma.family.findUnique({
     where: { id: session.familyId },
     select: { name: true, inviteCode: true },
   });
 
-  const hasAccounts = summaries.some((s) => s.accounts.length > 0);
+  const hasAccounts = totalAccountCount > 0;
+  const visibleSummaries = summaries.filter((s) => s.accounts.length > 0);
   const activeCategories = summaries.filter((s) => s.total > BigInt(0));
 
   return (
@@ -156,7 +165,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* 빈 상태 */}
+        {/* 빈 상태: 계좌 자체가 없을 때 */}
         {!hasAccounts && (
           <div className="bg-canvas rounded-2xl p-8 text-center mb-4" style={{ boxShadow: "var(--shadow-card)" }}>
             <div className="text-4xl mb-3">💰</div>
@@ -173,12 +182,9 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* 카테고리 카드 */}
+        {/* 카테고리 카드: 내역이 있는 계좌가 있는 카테고리만 */}
         <div className="flex flex-col gap-3">
-          {summaries.map((cat, idx) => {
-            const visibleAccounts = cat.accounts.filter((acc) => acc.latestEntry !== null);
-            if (visibleAccounts.length === 0) return null;
-            return (
+          {visibleSummaries.map((cat, idx) => (
             <div
               key={cat.id}
               className="bg-canvas rounded-2xl overflow-hidden"
@@ -204,37 +210,36 @@ export default async function DashboardPage() {
               {/* 계좌 목록 */}
               <div className="px-5">
                 <ul>
-                  {visibleAccounts.map((acc) => (
-                      <li
-                        key={acc.id}
-                        className="flex items-center justify-between py-3.5 border-b border-hairline last:border-0"
-                      >
-                        <div className="min-w-0 flex-1 mr-3">
-                          <Link href={`/accounts/${acc.id}/history`} className="text-[14px] font-medium text-ink truncate hover:underline">
-                            {acc.name}
-                          </Link>
-                          <p className="text-[12px] text-muted mt-0.5">
-                            {`${acc.latestEntry!.memberName} · ${timeAgo(acc.latestEntry!.recordedAt)}`}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-[15px] font-bold text-ink">
-                            {krw(acc.latestEntry!.amountKrw)}
-                          </span>
-                          <Link
-                            href={`/entries/new?accountId=${acc.id}`}
-                            className="text-[13px] font-semibold text-primary bg-[#fff1f3] px-3 py-1.5 rounded-full"
-                          >
-                            입력
-                          </Link>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                  {cat.accounts.map((acc) => (
+                    <li
+                      key={acc.id}
+                      className="flex items-center justify-between py-3.5 border-b border-hairline last:border-0"
+                    >
+                      <div className="min-w-0 flex-1 mr-3">
+                        <Link href={`/accounts/${acc.id}/history`} className="text-[14px] font-medium text-ink truncate hover:underline">
+                          {acc.name}
+                        </Link>
+                        <p className="text-[12px] text-muted mt-0.5">
+                          {acc.latestEntry.memberName} · {timeAgo(acc.latestEntry.recordedAt)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-[15px] font-bold text-ink">
+                          {krw(acc.latestEntry.amountKrw)}
+                        </span>
+                        <Link
+                          href={`/entries/new?accountId=${acc.id}`}
+                          className="text-[13px] font-semibold text-primary bg-[#fff1f3] px-3 py-1.5 rounded-full"
+                        >
+                          입력
+                        </Link>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
-            );
-          })}
+          ))}
         </div>
 
         {/* 하단 버튼 */}

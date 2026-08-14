@@ -43,7 +43,7 @@ export function EntryActions({ entry }: { entry: EntryForEdit }) {
         </div>
 
         <div className="px-4 py-5 flex flex-col gap-4">
-          <EditEntryForm entry={entry} />
+          <EditEntryForm key={entry.id} entry={entry} />
 
           {/* 삭제 섹션 */}
           <div className="border-t border-hairline pt-4 pb-2">
