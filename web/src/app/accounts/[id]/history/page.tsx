@@ -82,7 +82,7 @@ export default async function AccountHistoryPage({
   const { id } = await params;
 
   const account = await prisma.account.findUnique({
-    where: { id, familyId: session.familyId },
+    where: { id },
     select: { id: true, name: true, currency: true, category: { select: { name: true } } },
   });
   if (!account) notFound();
