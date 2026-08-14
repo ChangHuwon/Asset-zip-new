@@ -23,16 +23,6 @@ function formatXAxis(date: string): string {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
-function formatTooltipLabel(label: string): string {
-  return new Date(label).toLocaleDateString("ko-KR", {
-    month: "long",
-    day: "numeric",
-  });
-}
-
-function formatTooltipValue(value: number): [string, string] {
-  return [value.toLocaleString("ko-KR") + "원", "총 자산"];
-}
 
 export function TrendChart({ data }: { data: DailySnapshot[] }) {
   const nonZero = data.filter((d) => d.totalKrw > 0);
@@ -79,8 +69,15 @@ export function TrendChart({ data }: { data: DailySnapshot[] }) {
             width={56}
           />
           <Tooltip
-            formatter={formatTooltipValue}
-            labelFormatter={formatTooltipLabel}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            formatter={(value: any) => [
+              (typeof value === "number" ? value : 0).toLocaleString("ko-KR") + "원",
+              "총 자산",
+            ]}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            labelFormatter={(label: any) =>
+              new Date(String(label)).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })
+            }
             contentStyle={{
               fontSize: 13,
               borderRadius: 10,
