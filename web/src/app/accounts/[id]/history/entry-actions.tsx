@@ -2,7 +2,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { deleteEntry } from "@/actions/entries";
-import { EditEntryForm, type EntryForEdit } from "@/app/entries/[id]/edit/form";
+import { EditEntryForm, type EntryForEdit } from "@/components/entry-edit-form";
 
 export function EntryActions({ entry }: { entry: EntryForEdit }) {
   const [open, setOpen] = useState(false);

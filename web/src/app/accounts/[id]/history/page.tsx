@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { verifySession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { EntryActions } from "./entry-actions";
-import type { EntryForEdit } from "@/app/entries/[id]/edit/form";
+import type { EntryForEdit } from "@/components/entry-edit-form";
 
 const TYPE_META = {
   BALANCE: { label: "잔액 입력", color: "#767676", bg: "#f2f2f2" },
