@@ -14,7 +14,15 @@ const PERIOD_OPTIONS: { value: Period; label: string }[] = [
   { value: "1y", label: "1년" },
 ];
 
-const SLICE_COLORS = ["#ff385c", "#00a699", "#fc642d", "#767676", "#222222"];
+const SLICE_COLORS = [
+  "#ff385c", // 레드
+  "#3b82f6", // 블루
+  "#f59e0b", // 앰버
+  "#10b981", // 에메랄드
+  "#8b5cf6", // 바이올렛
+  "#06b6d4", // 시안
+  "#f97316", // 오렌지
+];
 
 function getPeriodDays(period: Period): number {
   switch (period) {
@@ -235,9 +243,14 @@ export default async function TrendPage({
         <TrendChart data={snapshots} />
 
         {/* ── 자산 구성 섹션 ── */}
-        <p className="text-[13px] font-semibold text-muted uppercase tracking-wide px-1 mt-6 mb-3">
-          자산 구성
-        </p>
+        <div className="flex items-baseline gap-1.5 px-1 mt-6 mb-3">
+          <p className="text-[13px] font-semibold text-muted uppercase tracking-wide">
+            자산 구성
+          </p>
+          <p className="text-[11px] text-muted">
+            ({new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })} 기준)
+          </p>
+        </div>
 
         <CategoryPie data={categorySlices} total={grandTotal} />
 
