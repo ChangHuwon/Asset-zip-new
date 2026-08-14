@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { verifySession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
-import { logout } from "@/actions/auth";
 import { CopyCode } from "./copy-code";
 import { CATEGORY_COLORS } from "@/lib/category-colors";
 import { NewEntryModal } from "@/components/new-entry-modal";
+import { HamburgerMenu } from "./hamburger-menu";
 
 const SEGMENT_COLORS = CATEGORY_COLORS;
 
@@ -112,33 +112,12 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* 헤더 */}
-      <header className="flex items-center justify-between px-5 h-14 bg-canvas border-b border-hairline sticky top-0 z-10">
-        <span className="text-[17px] font-bold text-ink tracking-tight">Asset.ZIP</span>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/settings/pin"
-            className="flex items-center gap-1.5 text-[13px] text-muted hover:text-ink transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
-            </svg>
-            {session.displayName}
-          </Link>
-          {session.isOwner && (
-            <Link
-              href="/settings/members"
-              className="h-8 px-3 text-[13px] font-semibold text-muted border border-hairline rounded-[8px] bg-canvas"
-            >
-              계정관리
-            </Link>
-          )}
-          <form action={logout}>
-            <button type="submit" className="h-8 px-3 text-[13px] font-semibold text-muted border border-hairline rounded-[8px] bg-canvas">
-              로그아웃
-            </button>
-          </form>
-        </div>
+      <header className="relative flex items-center px-3 h-14 bg-canvas border-b border-hairline sticky top-0 z-10">
+        <HamburgerMenu displayName={session.displayName} isOwner={session.isOwner} />
+        <span className="absolute left-1/2 -translate-x-1/2 text-[17px] font-bold text-ink tracking-tight pointer-events-none">
+          Asset.ZIP
+        </span>
+        <div className="w-9 ml-auto" />
       </header>
 
       <main className="flex-1 px-4 py-5 max-w-2xl mx-auto w-full animate-fade-up">
